@@ -1,7 +1,6 @@
 {
   "name": "mcp-winnow",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Winnow — an embedded TypeScript SDK that lets an agent use many MCP servers without context bloat.",
   "license": "MIT",
@@ -27,7 +26,7 @@
     "./gateway": { "types": "./dist/gateway/index.d.ts", "import": "./dist/gateway/index.js" }
   },
   "bin": { "mcp-winnow": "./dist/gateway/cli.js" },
-  "files": ["dist", "README.md", "docs/DESIGN.md"],
+  "files": ["dist", "docs", "README.md", "CHANGELOG.md", "LICENSE"],
   "engines": { "node": ">=20" },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
