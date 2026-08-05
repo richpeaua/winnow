@@ -43,6 +43,7 @@ Lifecycle: **`searchTools → loadTool → call`**. The SDK holds full defs inte
 - **Posture — auto-detect, hybrid-if-cached:** probe for a present/cached embedding model (`allowRemoteModels=false`); found → hybrid, absent → lexical-only. **Never auto-downloads.** Headless-with-no-model → lexical-only, silently. (Hard requirement, satisfied.)
 - **Backend pluggable:** `Embedder` interface; default local, optional remote (Voyage/OpenAI) for higher recall.
 - **Index:** name/title/description/param-descriptions/server (boost name/title; `annotations` excluded as untrusted). Returns top-k (default 8) entries + normalized `score` so the agent avoids loading wrong tools.
+- **Recall (measured, `bench/recall.js`):** hybrid **100%** recall@8; lexical-only **88%** (80% on paraphrases). **Lexical-only is a real regression, not a free fallback** — so: (a) **pre-provision the embedding model for headless** (one-time ~23MB cache; lexical-only is last-resort, not the expected path); (b) support a per-tool **`aliases`/keywords** field to lift lexical recall on paraphrases; (c) a **low-`score` escape hatch** — the agent may `list_tools(server)` to browse when the top hit is weak, so a miss degrades to browsing, never to a silent def-bloat blowout.
 
 ## 5. Result filter — the differentiator  *(F1)*
 
@@ -106,6 +107,8 @@ Counted with the target model's real tokenizer. Baseline = all schemas loaded + 
 
 **Reference benchmark:** ~5 servers/~80 tools; task = *"find open PRs with no review in 7 days, post a one-line summary of each to Slack"*; run attended (hybrid) and headless (lexical-only). **Accepted costs (logged, not hidden):** small search/embedding latency; lexical-only recall risk (mitigated by RRF when a model is present); first-`exec` codegen time.
 
+**Validated (`bench/`, see [bench/RESULTS.md](../bench/RESULTS.md)):** on a fixed 52-tool surface with a real tokenizer and the actual JMESPath filter — defs-at-rest **89.8%** (≥85% ✅), fat-call result **12.6× (call) / 82× (exec)**, end-to-end **9.6× (call) / 26× (exec)** (~10× target ✅). Caveats in RESULTS.md; the one unmeasured link is search *recall* (worth validating before/with build).
+
 ## 11. Component choices (from prior-art survey R2)
 
 | Concern | Choice | Why |
@@ -135,6 +138,6 @@ Heavy standalone gateway as the core topology; building/hosting the upstream MCP
 
 ## 15. Open risks
 
-- Lexical-only recall in headless may miss paraphrased tool intent → mitigate with good `summary`/description authoring + optional remote embedder.
+- Lexical-only recall in headless **measured at 88% recall@8 (80% on paraphrases)** — a real hole → mitigate by pre-caching the embedding model for headless (hybrid = 100%), a per-tool `aliases` field, and the low-`score` `list_tools` escape hatch (§4). Do not treat lexical-only as the default headless path.
 - QuickJS perf ceiling for heavy `exec` → `isolated-vm` opt-in tier.
 - `outputSchema` not always provided by servers → return type falls back to generic `ToolResult`; projection still works on `structuredContent`/`content`.
