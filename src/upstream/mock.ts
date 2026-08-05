@@ -16,8 +16,20 @@ export class MockUpstream implements UpstreamConnection {
 
   get identity(): string { return `mock:${this.server}`; }
 
+  private watchers = new Set<() => void | Promise<void>>();
+
   /** Test helper: swap this server's tools (simulates a server whose set changed). */
   setTools(tools: MockTool[]): void { this.tools = tools; }
+
+  /** Test helper: fire the change signal (awaits watcher callbacks). */
+  async emitToolsChanged(): Promise<void> {
+    for (const cb of this.watchers) await cb();
+  }
+
+  async watch(onChanged: () => void | Promise<void>): Promise<() => void> {
+    this.watchers.add(onChanged);
+    return () => { this.watchers.delete(onChanged); };
+  }
 
   async listTools(): Promise<ToolDef[]> {
     return this.tools.map((t) => ({

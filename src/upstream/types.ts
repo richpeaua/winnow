@@ -13,5 +13,11 @@ export interface UpstreamConnection {
   listTools(): Promise<ToolDef[]>;
   /** Call a tool by its short name (without the `server:` prefix). */
   callTool(name: string, args: unknown): Promise<ToolResult>;
+  /**
+   * Opt-in live watch: invoke `onChanged` when the server signals its tool set
+   * changed (MCP `notifications/tools/list_changed`). Returns an unsubscribe fn.
+   * Absent => this upstream can't be watched (client falls back to manual refresh).
+   */
+  watch?(onChanged: () => void | Promise<void>): Promise<() => void>;
   close(): Promise<void>;
 }

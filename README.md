@@ -50,6 +50,7 @@ const res  = await client.call(hits[0].id, { state: "open" }, {
 | `Winnow.fromConfig()` | ✅ implemented |
 | Code-exec sandbox: sync QuickJS-WASM in a worker + Atomics bridge (X1) | ✅ implemented — `npx tsx examples/exec-demo.ts` (30 fat PRs → 117 tok, 74×) |
 | Persistent catalog cache: disk-keyed by upstream identity, zero-connection warm start, `refresh()` (P1) | ✅ implemented (`cache`/`cacheDir`/`cacheTtlMs`; default on) |
+| Live `tools/list_changed` watch mode: auto-refresh catalog on a server change (P6) | ✅ implemented (opt-in `watch: true`) |
 | Gateway: run Winnow as an MCP server, stdio + HTTP (P4) | ✅ implemented — `npx tsx examples/gateway-demo.ts` (host → gateway → real upstream) |
 | Packaged for publish: `dist` build, types, `mcp-winnow` bin (P3) | ✅ `npm run build`; verified via `npm pack` → clean install → bin runs |
 

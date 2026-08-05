@@ -67,6 +67,13 @@ export class StdioUpstream implements UpstreamConnection {
     return { content: res.content, structuredContent: res.structuredContent, isError: res.isError };
   }
 
+  async watch(onChanged: () => void | Promise<void>): Promise<() => void> {
+    const client = await this.connect();
+    const { ToolListChangedNotificationSchema } = await import("@modelcontextprotocol/sdk/types.js");
+    client.setNotificationHandler(ToolListChangedNotificationSchema, () => { void onChanged(); });
+    return () => { try { client.removeNotificationHandler("notifications/tools/list_changed"); } catch { /* already gone */ } };
+  }
+
   async close(): Promise<void> {
     if (this.client) { await this.client.close(); this.client = null; }
   }

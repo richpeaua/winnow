@@ -76,6 +76,38 @@ test("cache: live-list failure degrades to a stale cache entry", async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test("watch: a live tools/list_changed auto-refreshes the catalog (no manual refresh)", async () => {
+  const mock = new MockUpstream("svc", [tool("alpha", "Alpha tool")]);
+  const w = new Winnow({ upstreams: [mock], cache: false, watch: true });
+  const info = await w.init();
+  assert.deepEqual(info.watching, ["svc"], "watch registered");
+  assert.ok((await w.searchTools("alpha")).some((h) => h.id === "svc:alpha"));
+
+  let fired = 0;
+  w.on("toolsChanged", () => { fired++; });
+
+  // Server changes its tool set and signals it — no manual refresh() call.
+  mock.setTools([tool("gamma", "Gamma tool")]);
+  await mock.emitToolsChanged();
+
+  assert.equal(fired, 1, "toolsChanged fired from the subscription");
+  assert.ok((await w.searchTools("gamma")).some((h) => h.id === "svc:gamma"), "new tool auto-indexed");
+  assert.ok(!w.listTools("svc").some((t) => t.id === "svc:alpha"), "old tool gone");
+  await w.close();
+});
+
+test("watch: close() unsubscribes (no more auto-refresh)", async () => {
+  const mock = new MockUpstream("svc", [tool("alpha", "Alpha")]);
+  const w = new Winnow({ upstreams: [mock], cache: false, watch: true });
+  await w.init();
+  let fired = 0;
+  w.on("toolsChanged", () => { fired++; });
+  await w.close();
+  mock.setTools([tool("beta", "Beta")]);
+  await mock.emitToolsChanged();
+  assert.equal(fired, 0, "no callbacks after close");
+});
+
 test("refresh: picks up a changed tool set and fires toolsChanged", async () => {
   const mock = new MockUpstream("svc", [tool("alpha", "Alpha tool")]);
   const w = new Winnow({ upstreams: [mock], cache: false });

@@ -26,6 +26,8 @@ export interface McpClientOptions {
   cacheDir?: string;
   /** Cache TTL in ms (default 1h); an entry older than this is re-listed. */
   cacheTtlMs?: number;
+  /** Opt-in: keep connections live and auto-refresh on tools/list_changed. */
+  watch?: boolean;
 }
 
 export class Winnow {
@@ -33,6 +35,7 @@ export class Winnow {
   private byServer = new Map<string, UpstreamConnection>();
   private ready = false;
   private listeners = new Set<() => void>();
+  private unsubscribes: Array<() => void> = [];
 
   constructor(private opts: McpClientOptions) {
     this.catalog = new Catalog(opts.embedder);
@@ -57,10 +60,19 @@ export class Winnow {
 
   /** Build the catalog + search index. On a full (fresh) cache hit, makes zero
    *  upstream connections. `fromCache` lists the servers served from disk. */
-  async init(): Promise<{ tools: number; hybrid: boolean; skipped: string[]; fromCache: string[] }> {
+  async init(): Promise<{ tools: number; hybrid: boolean; skipped: string[]; fromCache: string[]; watching: string[] }> {
     const { skipped, fromCache } = await this.catalog.build(this.opts.upstreams, this.cacheOpts);
     this.ready = true;
-    return { tools: this.catalog.size, hybrid: this.catalog.hybrid, skipped, fromCache };
+    const watching: string[] = [];
+    if (this.opts.watch) {
+      for (const u of this.opts.upstreams) {
+        if (!u.watch) continue;
+        const unsub = await u.watch(() => this.refresh(u.server));
+        this.unsubscribes.push(unsub);
+        watching.push(u.server);
+      }
+    }
+    return { tools: this.catalog.size, hybrid: this.catalog.hybrid, skipped, fromCache, watching };
   }
 
   /** Re-list one server (or all), patch the catalog + index, refresh the cache,
@@ -131,6 +143,8 @@ export class Winnow {
   }
 
   async close(): Promise<void> {
+    for (const unsub of this.unsubscribes) { try { unsub(); } catch { /* ignore */ } }
+    this.unsubscribes = [];
     await Promise.all(this.opts.upstreams.map((u) => u.close()));
     this.listeners.clear();
   }
