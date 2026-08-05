@@ -42,13 +42,15 @@ A **locked, build-ready design spec + decision log** for `mcp-client`: an embedd
 - [Persistent cache + list_changed subscriptions](tickets/13-persistent-cache-listchanged.md) — on-disk cache keyed by version/`ttlMs`; live incremental index updates. Catalog is in-memory per process today.
 - [HTTP auth — pre-provisioned OAuth + client_credentials grants](tickets/14-http-oauth-grants.md) — bearer is live-verified; the other two browserless grants are config-typed but unbuilt.
 - [Package for publish](tickets/15-package-for-publish.md) — build to `dist`, `exports`/types, worker resolution in prod, `npm pack` smoke test.
+- [Gateway adapter — Winnow as an MCP server (stdio + HTTP)](tickets/16-gateway-mcp-server.md) — the "install as a plugin" path: any MCP host connects to ONE server seeing 4 meta-tools. **`run_code` runs server-side in Winnow's sandbox = full power**; only dev-time TS types are SDK-only (corrects the earlier "degrades to a generic exec tool" note). Targets: local desktop (stdio), remote/hosted (HTTP).
+- [Claude Code plugin package](tickets/17-claude-code-plugin.md) — bundle the gateway as an installable Claude Code plugin. Blocked by the gateway.
 
 ## Not yet specified
 
 <!-- in-scope fog; graduates into tickets as the frontier advances -->
-- **Thin gateway adapter** — an optional, thin MCP-server shell over the SDK core, for reaching hosts whose code you don't own (Claude Desktop, Cursor, other-language hosts). Post-v1; wraps the same 4 meta-tools over MCP. Known cost: code-exec over the adapter degrades to a generic exec tool. *Only remaining in-scope fog.*
+_None outstanding._
 
-_The following graduated into tickets and are resolved (see Decisions so far): generated typed code API, public `McpClient` API surface, attended-vs-headless contract._
+_Graduated into tickets and resolved (see Decisions so far): generated typed code API, public `McpClient` API surface, attended-vs-headless contract. Graduated into the post-v1 backlog: the thin gateway adapter (now the gateway + Claude Code plugin tickets above)._
 
 _Deferred to implementation (non-blocking; default direction set in [docs/DESIGN.md](../docs/DESIGN.md) §13): connection pooling / reconnect-backoff / per-call timeouts, detailed failure semantics, disk-cache eviction, npm packaging/versioning._
 
