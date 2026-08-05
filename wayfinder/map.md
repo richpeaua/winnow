@@ -21,11 +21,14 @@ A **locked, build-ready design spec + decision log** for `mcp-client`: an embedd
 
 ## Decisions so far
 
-<!-- one line per closed ticket: gist + link. Empty until tickets resolve. -->
+<!-- one line per closed ticket: gist + link. -->
+- [Ground the design in the current MCP spec](tickets/01-ground-mcp-spec.md) — spec rev 2026-07-28, SDK v2; stdio + Streamable-HTTP both headless-capable (env/bearer creds, no browser); index text = name/title/desc + schema prop descriptions; results = `content[]` + `structuredContent` + `isError` (no size cap); freshness via `nextCursor` + `list_changed` + `ttlMs`/`cacheScope`. [findings](research/R1-mcp-spec-findings.md)
+- [Survey prior art for MCP context-bloat solutions](tickets/02-survey-prior-art.md) — code-exec pattern ~98% def savings but result-bloat unaddressed by existing gateways = **our edge**; stack = Orama (hybrid BM25+embeddings, lexical fallback) + JMESPath projections + QuickJS-WASM sandbox. [findings](research/R2-prior-art-findings.md)
 
 ## Not yet specified
 
 <!-- in-scope fog; graduates into tickets as the frontier advances -->
+- **Thin gateway adapter** — an optional, thin MCP-server shell over the SDK core, for reaching hosts whose code you don't own (Claude Desktop, Cursor, other-language hosts). SDK stays the destination; the adapter graduates into a ticket after the public `McpClient` API surface settles. Known cost: code-exec over the adapter degrades to a generic exec tool (loses the typed in-process path).
 - **Generated typed code API** — the shape of the `server → TS module` codegen the sandbox executes against (naming, types from JSON Schema, how a call is written). Graduates once the catalog model and sandbox runtime resolve.
 - **Public `McpClient` SDK API surface** — the actual class/method signatures (`searchTools`, `loadTool`, `call`, `exec`, lifecycle). Graduates once the core mechanisms resolve; it is their integration point.
 - **Attended vs headless behavioral differences** — tool-approval hooks, interactive prompts, telemetry/logging verbosity. Graduates after the API surface.
@@ -37,5 +40,5 @@ A **locked, build-ready design spec + decision log** for `mcp-client`: an embedd
 ## Out of scope
 
 <!-- work ruled beyond the destination; closed, never graduates -->
-- **Standalone MCP gateway/proxy server** — topology decided as embedded SDK during charting. A gateway wrapper could be a later, separate effort.
+- **Heavy standalone gateway as the core topology** — ruled out; the SDK is the core. A *thin* optional gateway adapter is in scope as fog (see Not yet specified), not this.
 - **Building or hosting the upstream MCP servers themselves** — this SDK is a client of them.
