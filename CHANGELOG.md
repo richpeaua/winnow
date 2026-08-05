@@ -7,6 +7,8 @@ All notable changes to Winnow are documented here. This project adheres to
 
 ### Added
 
+- **Per-agent auth passthrough / multi-tenant identity** (#6): a shared HTTP gateway can now act as a **distinct upstream identity per request** instead of one shared principal. `serveHttp` takes a `resolveAuth(req)` hook (or the batteries-included `forwardHeaderAuth({ server: header })`) that maps an incoming request to per-upstream bearers; config-only via `gateway.forwardAuth`. Plumbed through the SDK as `call(id, args, { auth })` / `exec(code, { auth })` → `upstream.callTool(name, args, ctx)`, with HTTP upstreams keeping a bounded LRU of per-identity connections. Strictly opt-in (default: configured identity). Part of the multi-agent scale epic (#8).
+
 - **Bounded sandbox worker pool** (#4): `run_code` execs now share a capped pool of reused workers (fresh QuickJS context per exec) with a queue + backpressure, instead of spawning an unbounded worker per exec. Sandbox memory is now flat at `maxWorkers × (32 MB + heap)` regardless of concurrent-agent count (measured: ~129 MB at 20 concurrent execs, vs ~641 MB before). Configurable via `sandbox: { maxWorkers, maxQueue, queueTimeoutMs }`. Part of the [multi-agent scale epic](https://github.com/richpeaua/winnow/issues/8).
 - **Off-thread local embedder** (#5): new `localEmbedder()` runs Transformers.js semantic embedding in a worker thread, so hybrid-search embedding no longer blocks the main event loop (measured: 6 ms max loop-gap while a 101 ms embed ran off-thread). Query-time embed failures now degrade to lexical for that search instead of throwing. Part of the multi-agent scale epic (#8).
 

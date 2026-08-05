@@ -155,6 +155,27 @@ Under a server's `tools`, keyed by the tool's short name, you set the static fil
 
 An agent can override `project`/`maxTokens` per call, but the cap is a hard ceiling it can only lower.
 
+## Multi-tenant auth passthrough (http gateway)
+
+By default every request through the gateway hits each upstream as the **same** configured identity. For a shared gateway serving many agents that must act as **distinct** upstream identities, `gateway.forwardAuth` maps a server to a request header carrying that agent's per-call bearer:
+
+```jsonc
+{
+  "servers": { "github": { "transport": "http", "url": "https://api.github.com/mcp" } },
+  "gateway": {
+    "forwardAuth": { "github": "X-Winnow-Github-Auth" }   // serverName -> request header
+  }
+}
+```
+
+Now an agent's request header `X-Winnow-Github-Auth: Bearer <token>` becomes that call's GitHub bearer (a leading `Bearer ` is stripped). A request that omits the header falls back to the server's configured identity. No upstream secrets are baked into the shared config — each agent presents its own.
+
+| Field | Type | Notes |
+|---|---|---|
+| `gateway.forwardAuth` | `Record<serverName, headerName>` | Forward the named request header as that upstream's per-call bearer. Only meaningful for `--http`. |
+
+For programmatic control (map a JWT subject to credentials, read a vault, etc.), pass `resolveAuth` to `serveHttp` instead — see [API.md](API.md#gateway). Passthrough is strictly opt-in: with neither set, all requests use the configured identity.
+
 ## Full example
 
 ```jsonc

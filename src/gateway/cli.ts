@@ -5,7 +5,8 @@
 // prod: mcp-winnow gateway --config winnow.config.json   (after P3 packaging)
 import fs from "node:fs";
 import { Winnow } from "../client.js";
-import { serveStdio, serveHttp } from "./index.js";
+import { resolveConfig } from "../config.js";
+import { serveStdio, serveHttp, forwardHeaderAuth } from "./index.js";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -35,8 +36,12 @@ process.stderr.write(`[winnow-gateway] ${info.tools} tools from ${info.tools ? "
 if (has("--http")) {
   const port = Number(arg("--port") ?? 8080);
   const token = process.env.WINNOW_GATEWAY_TOKEN;
-  await serveHttp(winnow, { port, token });
-  process.stderr.write(`[winnow-gateway] Streamable-HTTP on :${port}${token ? " (bearer required)" : ""}\n`);
+  // Optional multi-tenant passthrough: config.gateway.forwardAuth maps a server
+  // to a request header carrying that upstream's per-agent bearer.
+  const forwardAuth = resolveConfig(raw).gateway?.forwardAuth;
+  const resolveAuth = forwardAuth ? forwardHeaderAuth(forwardAuth) : undefined;
+  await serveHttp(winnow, { port, token, resolveAuth });
+  process.stderr.write(`[winnow-gateway] Streamable-HTTP on :${port}${token ? " (bearer required)" : ""}${forwardAuth ? " (auth passthrough on)" : ""}\n`);
 } else {
   await serveStdio(winnow);
 }

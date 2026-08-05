@@ -26,7 +26,7 @@ export interface SandboxPoolOptions {
   queueTimeoutMs?: number;
 }
 
-export type BridgeCall = (id: string, args: unknown) => Promise<FilteredResult>;
+export type BridgeCall = (id: string, args: unknown, ctx?: unknown) => Promise<FilteredResult>;
 export type ToolFacade = Array<{ id: string; server: string; name: string }>;
 
 const BRIDGE_BYTES = 32 * 1024 * 1024; // max size of a single bridged result
@@ -36,6 +36,8 @@ interface Job {
   code: string;
   tools: ToolFacade;
   opts: ExecOpts;
+  /** Opaque per-exec context passed to the bridge on every host call (e.g. auth). */
+  ctx?: unknown;
   resolve: (r: FilteredResult) => void;
   queueTimer?: ReturnType<typeof setTimeout>;
 }
@@ -75,14 +77,15 @@ export class SandboxPool {
     return { output: { error: m }, tokens: this.count(m), truncated: false, isError: true };
   }
 
-  /** Run one exec. Never rejects: overflow/timeout/crash all resolve as an isError result. */
-  run(code: string, tools: ToolFacade, opts: ExecOpts = {}): Promise<FilteredResult> {
+  /** Run one exec. Never rejects: overflow/timeout/crash all resolve as an isError result.
+   *  `ctx` is opaque and forwarded to the bridge on every host call (used for auth). */
+  run(code: string, tools: ToolFacade, opts: ExecOpts = {}, ctx?: unknown): Promise<FilteredResult> {
     if (this.closed) return Promise.resolve(this.errResult("sandbox pool closed"));
     if (this.queue.length >= this.maxQueue) {
       return Promise.resolve(this.errResult(`sandbox pool saturated (queue full: ${this.maxQueue})`));
     }
     return new Promise<FilteredResult>((resolve) => {
-      const job: Job = { code, tools, opts, resolve };
+      const job: Job = { code, tools, opts, ctx, resolve };
       job.queueTimer = setTimeout(() => {
         const i = this.queue.indexOf(job);
         if (i >= 0) { this.queue.splice(i, 1); resolve(this.errResult(`exec queued longer than ${this.queueTimeoutMs}ms`)); }
@@ -147,7 +150,7 @@ export class SandboxPool {
   private async handleCall(w: PooledWorker, msg: { id: string; args: unknown }): Promise<void> {
     let payload: string;
     try {
-      const r = await this.bridge(msg.id, msg.args);
+      const r = await this.bridge(msg.id, msg.args, w.job?.ctx);
       payload = JSON.stringify({ output: r.output, isError: !!r.isError });
     } catch (e) {
       payload = JSON.stringify({ output: String((e as Error)?.message ?? e), isError: true });

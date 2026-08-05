@@ -4,12 +4,15 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Winnow } from "../client.js";
+import type { CallContext } from "../types.js";
 
 const asContent = (v: unknown) => ({
   content: [{ type: "text" as const, text: typeof v === "string" ? v : JSON.stringify(v) }],
 });
 
-export function createGateway(winnow: Winnow, opts: { name?: string; version?: string } = {}): McpServer {
+/** `auth` is the per-request upstream identity (multi-tenant passthrough), applied
+ *  to every call_tool / run_code invocation on this (per-request) gateway instance. */
+export function createGateway(winnow: Winnow, opts: { name?: string; version?: string; auth?: Record<string, CallContext> } = {}): McpServer {
   const server = new McpServer({ name: opts.name ?? "winnow", version: opts.version ?? "0.1.0" });
 
   server.tool(
@@ -37,7 +40,7 @@ export function createGateway(winnow: Winnow, opts: { name?: string; version?: s
     "Call one tool by id. Optional JMESPath `project` and `maxTokens` trim the result before it returns.",
     { id: z.string(), args: z.record(z.string(), z.unknown()).optional(), project: z.string().optional(), maxTokens: z.number().int().positive().optional() },
     async ({ id, args, project, maxTokens }) => {
-      const r = await winnow.call(id, args ?? {}, { project, maxTokens });
+      const r = await winnow.call(id, args ?? {}, { project, maxTokens, auth: opts.auth });
       return { ...asContent(r.output), structuredContent: { output: r.output, truncated: r.truncated }, isError: r.isError };
     }
   );
@@ -47,7 +50,7 @@ export function createGateway(winnow: Winnow, opts: { name?: string; version?: s
     "Run sandboxed TypeScript against a typed `mcp.<server>.<tool>()` facade to compose many tool calls and return only a small computed result. Runs server-side in Winnow's sandbox.",
     { code: z.string() },
     async ({ code }) => {
-      const r = await winnow.exec(code);
+      const r = await winnow.exec(code, { auth: opts.auth });
       return { ...asContent(r.output), structuredContent: { output: r.output }, isError: r.isError };
     }
   );

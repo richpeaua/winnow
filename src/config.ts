@@ -50,6 +50,12 @@ export const McpClientConfigSchema = z.object({
       queueTimeoutMs: z.number().int().positive().optional(),
     })
     .optional(),
+  gateway: z
+    .object({
+      // serverName -> request header carrying that upstream's per-agent bearer.
+      forwardAuth: z.record(z.string(), z.string()).optional(),
+    })
+    .optional(),
 });
 
 export type McpClientConfig = z.infer<typeof McpClientConfigSchema>;

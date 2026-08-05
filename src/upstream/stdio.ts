@@ -61,6 +61,8 @@ export class StdioUpstream implements UpstreamConnection {
     return out;
   }
 
+  // ctx (per-call auth override) is ignored: a stdio subprocess has a single
+  // process-level identity, so per-call identity does not apply.
   async callTool(name: string, args: unknown): Promise<ToolResult> {
     const client = await this.connect();
     const res = await client.callTool({ name, arguments: (args ?? {}) as Record<string, unknown> });
