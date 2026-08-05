@@ -3,9 +3,9 @@ id: Z1
 title: Assemble the build-ready design spec
 type: task
 labels: [wayfinder:ticket, wayfinder:task]
-status: open
-assignee:
-blocked_by: [R1, R2, C1, S1, F1, G1, X1, M1]
+status: closed
+assignee: lpeaua
+blocked_by: [R1, R2, C1, S1, F1, G1, X1, M1, A1, A2, A3]
 map: map.md
 ---
 ## Question
@@ -16,3 +16,7 @@ Stitch every resolved decision into one coherent, build-ready design spec + deci
 - Include the decision log (why, not just what) and open risks.
 
 This ticket comes last. Terminal — nothing blocks on it. Expect newly-graduated fog tickets to be added to its `blocked_by` before it is worked.
+
+## Resolution
+
+Build-ready design spec + decision log assembled at **[docs/DESIGN.md](../../docs/DESIGN.md)**. It integrates every resolved decision (C1 catalog, S1 search, F1 filter, G1 config, X1 sandbox, A1 codegen, A2 API surface, A3 attended/headless, M1 metrics), with a decision log (§12), deferred-to-implementation items (§13), out-of-scope (§14), and open risks (§15). Cross-consistency checked: the API surface exposes each anti-bloat mechanism exactly once; headless holds throughout; the M1 targets are achievable by the design. **Destination reached.**
