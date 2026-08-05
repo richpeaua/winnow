@@ -13,6 +13,7 @@ export { createGateway, serveStdio, serveHttp, forwardHeaderAuth, type HttpGatew
 export { MockUpstream, type MockTool } from "./upstream/mock.js";
 export { StdioUpstream, type StdioUpstreamConfig } from "./upstream/stdio.js";
 export { HttpUpstream, type HttpUpstreamConfig } from "./upstream/http.js";
+export { PooledUpstream } from "./upstream/pool.js";
 export { staticBearer, preProvisionedOAuth, clientCredentials, type BearerProvider, type ClientCredentialsConfig } from "./auth.js";
 export type { UpstreamConnection } from "./upstream/types.js";
 export type * from "./types.js";

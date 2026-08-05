@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { UpstreamConnection } from "./upstream/types.js";
 import { StdioUpstream } from "./upstream/stdio.js";
 import { HttpUpstream } from "./upstream/http.js";
+import { PooledUpstream } from "./upstream/pool.js";
 import { staticBearer, preProvisionedOAuth, clientCredentials } from "./auth.js";
 import type { ResultFilterPolicy } from "./types.js";
 
@@ -28,6 +29,7 @@ const ServerConfig = z.discriminatedUnion("transport", [
     args: z.array(z.string()).optional(),
     env: z.record(z.string(), z.string()).optional(),
     tools: z.record(z.string(), FilterPolicy).optional(),
+    poolSize: z.number().int().positive().optional(),
   }),
   z.object({
     transport: z.literal("http"),
@@ -35,6 +37,7 @@ const ServerConfig = z.discriminatedUnion("transport", [
     headers: z.record(z.string(), z.string()).optional(),
     auth: HttpAuth.optional(),
     tools: z.record(z.string(), FilterPolicy).optional(),
+    poolSize: z.number().int().positive().optional(),
   }),
 ]);
 
@@ -85,17 +88,22 @@ export function resolveConfig(raw: unknown): McpClientConfig {
 /** Build real upstream connections (stdio / Streamable-HTTP) from validated config. */
 export function buildUpstreams(config: McpClientConfig): UpstreamConnection[] {
   return Object.entries(config.servers).map(([name, s]) => {
+    // A factory so a pooled server gets independent replica connections.
+    let factory: () => UpstreamConnection;
     if (s.transport === "stdio") {
-      return new StdioUpstream(name, { command: s.command, args: s.args, env: s.env });
+      factory = () => new StdioUpstream(name, { command: s.command, args: s.args, env: s.env });
+    } else {
+      let getBearer;
+      switch (s.auth?.type) {
+        case "bearer": getBearer = staticBearer(s.auth.token); break;
+        case "oauth": getBearer = preProvisionedOAuth(s.auth.tokens); break;
+        case "client_credentials": getBearer = clientCredentials({ clientId: s.auth.clientId, clientSecret: s.auth.clientSecret, tokenUrl: s.auth.tokenUrl }); break;
+        default: getBearer = undefined;
+      }
+      factory = () => new HttpUpstream(name, { url: s.url, headers: s.headers, getBearer });
     }
-    let getBearer;
-    switch (s.auth?.type) {
-      case "bearer": getBearer = staticBearer(s.auth.token); break;
-      case "oauth": getBearer = preProvisionedOAuth(s.auth.tokens); break;
-      case "client_credentials": getBearer = clientCredentials({ clientId: s.auth.clientId, clientSecret: s.auth.clientSecret, tokenUrl: s.auth.tokenUrl }); break;
-      default: getBearer = undefined;
-    }
-    return new HttpUpstream(name, { url: s.url, headers: s.headers, getBearer });
+    // poolSize > 1 -> fan calls across N least-busy replicas; 1 (default) -> the single upstream, no overhead.
+    return s.poolSize && s.poolSize > 1 ? new PooledUpstream(name, factory, s.poolSize) : factory();
   });
 }
 
