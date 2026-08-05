@@ -3,6 +3,7 @@
 import { Catalog } from "./catalog.ts";
 import { filterResult, approxTokens } from "./filter.ts";
 import { runSandbox, type ExecOpts } from "./sandbox.ts";
+import { resolveConfig, buildUpstreams, policiesFromConfig } from "./config.ts";
 import type { CallOpts, CatalogEntry, Embedder, FilteredResult, ResultFilterPolicy, SearchHit, ToolDef, TokenCounter } from "./types.ts";
 import type { UpstreamConnection } from "./upstream/types.ts";
 
@@ -30,6 +31,18 @@ export class McpClient {
   constructor(private opts: McpClientOptions) {
     this.catalog = new Catalog(opts.embedder);
     for (const u of opts.upstreams) this.byServer.set(u.server, u);
+  }
+
+  /** Build a client from a raw config object (file/env/programmatic). */
+  static fromConfig(rawConfig: unknown, extra: Partial<Omit<McpClientOptions, "upstreams" | "policies">> = {}): McpClient {
+    const config = resolveConfig(rawConfig);
+    return new McpClient({
+      upstreams: buildUpstreams(config),
+      policies: policiesFromConfig(config),
+      defaultMaxTokens: config.defaults.maxTokens,
+      topK: config.search.topK,
+      ...extra,
+    });
   }
 
   /** Build the catalog + search index (or load cache, in the full impl). */

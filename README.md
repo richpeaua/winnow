@@ -43,10 +43,12 @@ const res  = await client.call(hits[0].id, { state: "open" }, {
 | Config + `${ENV}` interpolation, zod fail-fast (G1) | ✅ implemented |
 | Public `McpClient` facade + 4 meta-tool adapter (A2) | ✅ implemented |
 | Pluggable upstream + in-memory mock | ✅ implemented |
-| Real stdio/http transport from config | 🚧 stub (`src/config.ts` `buildUpstreams`) |
+| Real stdio transport (`buildUpstreams`) | ✅ implemented — verified against the reference `server-everything` (see `examples/real-stdio.ts`) |
+| Real Streamable-HTTP transport + bearer auth | ✅ implemented (not yet live-tested) |
+| `McpClient.fromConfig()` | ✅ implemented |
 | Code-exec sandbox: QuickJS-WASM (X1) | 🚧 stub (`src/sandbox.ts`) |
 
-The validated core (search → load → call → filter) is real and runs offline via the mock upstream. The two stubs are clearly marked and throw with a pointer to the design.
+The core (search → load → call → filter) is real and drives actual MCP servers over stdio. `npx tsx examples/real-stdio.ts` proves the round-trip. The one remaining stub — the `exec` sandbox — is clearly marked and throws with a pointer to the design.
 
 ## Layout
 
