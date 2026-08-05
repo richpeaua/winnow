@@ -5,14 +5,22 @@ All notable changes to Winnow are documented here. This project adheres to
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [0.2.0] — 2026-08-05
+
+Multi-agent scale ([epic #8](https://github.com/richpeaua/winnow/issues/8)): four gaps that surface when many agents share one gateway, each with a measured before/after and Node 20 + 22 CI.
+
 ### Added
 
-- **Upstream connection pooling** (#7): a server can set `poolSize: N` to keep N replica connections and dispatch each call to the least-busy one, so a single-threaded upstream gets N parallel workers instead of serializing the fleet's fan-in. New `PooledUpstream` (transport-agnostic; wraps stdio or http). Replicas connect lazily (idle cost = one connection) and are reused; `poolSize: 1` (default) is unchanged single-connection behavior, and pooling leaves the catalog cache key intact. Completes the multi-agent scale epic (#8).
+- **Bounded sandbox worker pool** (#4): `run_code` execs now share a capped pool of reused workers (fresh QuickJS context per exec) with a queue + backpressure, instead of spawning an unbounded worker per exec. Sandbox memory is now flat at `maxWorkers × (32 MB + heap)` regardless of concurrent-agent count (measured: ~129 MB at 20 concurrent execs, vs ~641 MB before). Configurable via `sandbox: { maxWorkers, maxQueue, queueTimeoutMs }`.
+- **Off-thread local embedder** (#5): new `localEmbedder()` runs Transformers.js semantic embedding in a worker thread, so hybrid-search embedding no longer blocks the main event loop (measured: 6 ms max loop-gap while a 101 ms embed ran off-thread). Query-time embed failures now degrade to lexical for that search instead of throwing.
+- **Per-agent auth passthrough / multi-tenant identity** (#6): a shared HTTP gateway can now act as a **distinct upstream identity per request** instead of one shared principal. `serveHttp` takes a `resolveAuth(req)` hook (or the batteries-included `forwardHeaderAuth({ server: header })`) that maps an incoming request to per-upstream bearers; config-only via `gateway.forwardAuth`. Plumbed through the SDK as `call(id, args, { auth })` / `exec(code, { auth })` → `upstream.callTool(name, args, ctx)`, with HTTP upstreams keeping a bounded LRU of per-identity connections. Strictly opt-in (default: configured identity).
+- **Upstream connection pooling** (#7): a server can set `poolSize: N` to keep N replica connections and dispatch each call to the least-busy one, so a single-threaded upstream gets N parallel workers instead of serializing the fleet's fan-in. New `PooledUpstream` (transport-agnostic; wraps stdio or http). Replicas connect lazily (idle cost = one connection) and are reused; `poolSize: 1` (default) is unchanged single-connection behavior, and pooling leaves the catalog cache key intact.
 
-- **Per-agent auth passthrough / multi-tenant identity** (#6): a shared HTTP gateway can now act as a **distinct upstream identity per request** instead of one shared principal. `serveHttp` takes a `resolveAuth(req)` hook (or the batteries-included `forwardHeaderAuth({ server: header })`) that maps an incoming request to per-upstream bearers; config-only via `gateway.forwardAuth`. Plumbed through the SDK as `call(id, args, { auth })` / `exec(code, { auth })` → `upstream.callTool(name, args, ctx)`, with HTTP upstreams keeping a bounded LRU of per-identity connections. Strictly opt-in (default: configured identity). Part of the multi-agent scale epic (#8).
+### Fixed
 
-- **Bounded sandbox worker pool** (#4): `run_code` execs now share a capped pool of reused workers (fresh QuickJS context per exec) with a queue + backpressure, instead of spawning an unbounded worker per exec. Sandbox memory is now flat at `maxWorkers × (32 MB + heap)` regardless of concurrent-agent count (measured: ~129 MB at 20 concurrent execs, vs ~641 MB before). Configurable via `sandbox: { maxWorkers, maxQueue, queueTimeoutMs }`. Part of the [multi-agent scale epic](https://github.com/richpeaua/winnow/issues/8).
-- **Off-thread local embedder** (#5): new `localEmbedder()` runs Transformers.js semantic embedding in a worker thread, so hybrid-search embedding no longer blocks the main event loop (measured: 6 ms max loop-gap while a 101 ms embed ran off-thread). Query-time embed failures now degrade to lexical for that search instead of throwing. Part of the multi-agent scale epic (#8).
+- Worker entry points (sandbox + embedder) are now plain `.mjs` so they load natively in a `worker_thread` on Node 20 (a TS loader does not reliably apply to a Worker entry there) — fixes `run_code`/hybrid-embedding under Node 20.
 
 ## [0.1.0] — initial
 
