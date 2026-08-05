@@ -1,0 +1,29 @@
+{
+  "name": "mcp-client",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "An embedded TypeScript SDK that lets an agent use many MCP servers without context bloat.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "demo": "tsx examples/demo.ts",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jmespath-community/jmespath": "^1.1.3",
+    "@orama/orama": "^3.1.18",
+    "zod": "^4.4.3"
+  },
+  "optionalDependencies": {
+    "@huggingface/transformers": "^4.2.0",
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
