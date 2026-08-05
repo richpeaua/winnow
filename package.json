@@ -1,6 +1,6 @@
 {
   "name": "mcp-winnow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Winnow — an embedded TypeScript SDK that lets an agent use many MCP servers without context bloat.",
   "license": "MIT",
