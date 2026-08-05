@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { UpstreamConnection } from "./upstream/types.js";
 import { StdioUpstream } from "./upstream/stdio.js";
 import { HttpUpstream } from "./upstream/http.js";
+import { staticBearer, preProvisionedOAuth, clientCredentials } from "./auth.js";
 import type { ResultFilterPolicy } from "./types.js";
 
 const FilterPolicy = z.object({
@@ -74,11 +75,14 @@ export function buildUpstreams(config: McpClientConfig): UpstreamConnection[] {
     if (s.transport === "stdio") {
       return new StdioUpstream(name, { command: s.command, args: s.args, env: s.env });
     }
-    const bearer =
-      s.auth?.type === "bearer" ? s.auth.token
-      : s.auth?.type === "oauth" ? s.auth.tokens
-      : undefined; // client_credentials grant: follow-up (see docs/DESIGN.md §8)
-    return new HttpUpstream(name, { url: s.url, headers: s.headers, bearer });
+    let getBearer;
+    switch (s.auth?.type) {
+      case "bearer": getBearer = staticBearer(s.auth.token); break;
+      case "oauth": getBearer = preProvisionedOAuth(s.auth.tokens); break;
+      case "client_credentials": getBearer = clientCredentials({ clientId: s.auth.clientId, clientSecret: s.auth.clientSecret, tokenUrl: s.auth.tokenUrl }); break;
+      default: getBearer = undefined;
+    }
+    return new HttpUpstream(name, { url: s.url, headers: s.headers, getBearer });
   });
 }
 

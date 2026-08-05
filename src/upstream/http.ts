@@ -1,19 +1,24 @@
 // Real Streamable-HTTP upstream (spec 2026-07-28 current transport). Lazy connect.
-// Headless auth: a pre-provisioned bearer token via header (browserless).
-// Seeded-OAuth / client_credentials grants are noted for follow-up.
+// Headless auth (all browserless): static bearer, pre-provisioned OAuth, or the
+// client_credentials grant — resolved via a BearerProvider (see auth.ts); the
+// connection re-establishes when a refreshed token changes the bearer.
 import type { ToolDef, ToolResult } from "../types.js";
 import type { UpstreamConnection } from "./types.js";
+import type { BearerProvider } from "../auth.js";
 
 export interface HttpUpstreamConfig {
   url: string;
   headers?: Record<string, string>;
-  /** Pre-provisioned bearer token (already interpolated from env). */
+  /** Static pre-provisioned bearer token (already interpolated from env). */
   bearer?: string;
+  /** Dynamic bearer source (oauth / client_credentials); takes precedence over `bearer`. */
+  getBearer?: BearerProvider;
 }
 
 export class HttpUpstream implements UpstreamConnection {
   private client: any = null;
   private connecting: Promise<any> | null = null;
+  private currentBearer: string | undefined;
 
   constructor(public readonly server: string, private cfg: HttpUpstreamConfig) {}
 
@@ -22,19 +27,23 @@ export class HttpUpstream implements UpstreamConnection {
   }
 
   private async connect(): Promise<any> {
-    if (this.client) return this.client;
+    // Resolve the bearer every time (client_credentials refreshes on expiry).
+    const bearer = this.cfg.getBearer ? await this.cfg.getBearer() : this.cfg.bearer;
+    if (this.client && bearer === this.currentBearer) return this.client;
+    if (this.client) { try { await this.client.close(); } catch { /* reconnect on token change */ } this.client = null; }
     if (this.connecting) return this.connecting;
     this.connecting = (async () => {
       const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
       const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
       const headers = {
         ...(this.cfg.headers ?? {}),
-        ...(this.cfg.bearer ? { Authorization: `Bearer ${this.cfg.bearer}` } : {}),
+        ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
       };
       const transport = new StreamableHTTPClientTransport(new URL(this.cfg.url), { requestInit: { headers } });
       const client = new Client({ name: "mcp-winnow", version: "0.0.1" }, { capabilities: {} });
       await client.connect(transport);
       this.client = client;
+      this.currentBearer = bearer;
       return client;
     })();
     try { return await this.connecting; }

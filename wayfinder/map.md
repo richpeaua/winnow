@@ -39,10 +39,11 @@ A **locked, build-ready design spec + decision log** for `mcp-client`: an embedd
 
 <!-- The destination (build-ready spec) was reached AND implemented on master; SDK is feature-complete and both transports are live-verified. These are follow-on build tickets beyond the original destination. -->
 
-Open:
-- [HTTP auth — pre-provisioned OAuth + client_credentials grants](tickets/14-http-oauth-grants.md) — bearer is live-verified; the other two browserless grants are config-typed but unbuilt.
+Open: _none — functional backlog cleared._
 
-Go-decisions (yours, not build work): publish `mcp-winnow` to npm; choose a LICENSE. The Claude Code plugin's live `/plugin install` waits on the npm publish (or a local `npm link`).
+Go-decisions (yours, not build work): flip the repo public, then publish `mcp-winnow` to npm (activates `npx -y mcp-winnow` + the plugin's live `/plugin install`). LICENSE chosen: MIT.
+
+Deferred (external dependency): per-response `ttlMs`/`cacheScope` cache hints — pending an SDK upgrade to the 2026-07-28 client (see P6).
 
 Done:
 - ✅ [Gateway adapter — Winnow as an MCP server (stdio + HTTP)](tickets/16-gateway-mcp-server.md) — the "install as a plugin" path; 4 meta-tools, `run_code` server-side = full power. Verified live + unit (PR #2).
@@ -50,6 +51,7 @@ Done:
 - ✅ [Claude Code plugin package](tickets/17-claude-code-plugin.md) — MCP-only plugin + marketplace; resilient empty-config; JSON validated + unit-tested. Live `/plugin install` pends the npm publish (docs cover the local-link override).
 - ✅ [Persistent catalog cache](tickets/13-persistent-cache-listchanged.md) — disk cache keyed by upstream identity; zero-connection warm start; degrade-to-stale; `refresh()` + `'toolsChanged'`. (Live `list_changed` split to P6.)
 - ✅ [Live tools/list_changed subscriptions](tickets/18-listchanged-subscriptions.md) — opt-in `watch` mode: auto-refresh the catalog on a live server's change, unsubscribe on close. (`ttlMs`/`cacheScope` hints deferred pending an SDK upgrade.)
+- ✅ [HTTP auth — OAuth + client_credentials grants](tickets/14-http-oauth-grants.md) — browserless `BearerProvider`s (static / pre-provisioned oauth / client_credentials with refresh); reconnect on token change. Live-verified (23/23).
 
 ## Not yet specified
 
