@@ -24,6 +24,7 @@ A **locked, build-ready design spec + decision log** for `mcp-client`: an embedd
 <!-- one line per closed ticket: gist + link. -->
 - [Ground the design in the current MCP spec](tickets/01-ground-mcp-spec.md) — spec rev 2026-07-28, SDK v2; stdio + Streamable-HTTP both headless-capable (env/bearer creds, no browser); index text = name/title/desc + schema prop descriptions; results = `content[]` + `structuredContent` + `isError` (no size cap); freshness via `nextCursor` + `list_changed` + `ttlMs`/`cacheScope`. [findings](research/R1-mcp-spec-findings.md)
 - [Survey prior art for MCP context-bloat solutions](tickets/02-survey-prior-art.md) — code-exec pattern ~98% def savings but result-bloat unaddressed by existing gateways = **our edge**; stack = Orama (hybrid BM25+embeddings, lexical fallback) + JMESPath projections + QuickJS-WASM sandbox. [findings](research/R2-prior-art-findings.md)
+- [Design the progressive-disclosure tool catalog & schema-loading model](tickets/03-catalog-progressive-disclosure.md) — 3-verb disclosure (`searchTools`→`loadTool`→`call`); eager-list-at-init then disconnect, lazy-reconnect per call (warm cache = zero connections until a call); at-rest entry `{id,name,1-line,server}` (full schema only on `loadTool`); disk cache default-on keyed by version+`ttlMs`; freshness via ttl + `list_changed` when live, snapshot headless; ≈20-40 tok/entry.
 
 ## Not yet specified
 
@@ -32,9 +33,8 @@ A **locked, build-ready design spec + decision log** for `mcp-client`: an embedd
 - **Generated typed code API** — the shape of the `server → TS module` codegen the sandbox executes against (naming, types from JSON Schema, how a call is written). Graduates once the catalog model and sandbox runtime resolve.
 - **Public `McpClient` SDK API surface** — the actual class/method signatures (`searchTools`, `loadTool`, `call`, `exec`, lifecycle). Graduates once the core mechanisms resolve; it is their integration point.
 - **Attended vs headless behavioral differences** — tool-approval hooks, interactive prompts, telemetry/logging verbosity. Graduates after the API surface.
-- **Upstream connection lifecycle** — lazy vs eager connect, pooling, reconnect/backoff. Partly graduates from the MCP-spec research.
-- **Caching & persistence** — search index + fetched schemas on disk; invalidation. Graduates after the catalog model.
-- **Failure semantics** — upstream server errors, timeouts, partial results. Graduates after connection lifecycle.
+- **Upstream connection lifecycle** — connect model settled in the catalog ticket (eager-list-then-disconnect, lazy-reconnect per call); still open: connection pooling, reconnect/backoff, per-call timeouts.
+- **Failure semantics** — upstream server errors, timeouts, partial results, and the init-listing failure policy (basic default set in the catalog ticket; details open).
 - **Packaging & distribution** — npm layout, versioning, peer deps. Late fog.
 
 ## Out of scope
