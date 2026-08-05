@@ -40,6 +40,14 @@ const res  = await client.call(hits[0].id, { state: "open" }, {
 });
 ```
 
+## Documentation
+
+- **[Usage guide](docs/USAGE.md)** — task recipes: connecting servers, auth, result-filter projections, `exec`, agent integration, the gateway, cache & watch, troubleshooting.
+- **[API reference](docs/API.md)** — the `Winnow` class, options, and types.
+- **[Config reference](docs/CONFIG.md)** — the full `winnow.config.json` schema.
+- **[Examples](examples/README.md)** — what each runnable example demonstrates.
+- **[Design spec](docs/DESIGN.md)** — architecture and the *why* behind every decision.
+
 ## Status
 
 | Area | State |
@@ -89,11 +97,12 @@ Then drop a `winnow.config.json` in your project root. (Requires `mcp-winnow` pu
 ## Layout
 
 ```
-src/        SDK: client, catalog, search, filter, config, adapter, sandbox(stub), upstream/
-examples/   runnable demo + mock servers
-test/       unit + integration tests
+src/        SDK: client, catalog, search, filter, config, adapter, sandbox, upstream/, gateway/
+examples/   runnable demos + mock servers (see examples/README.md)
+test/       unit + integration tests (offline)
 bench/      validation benchmarks (token reduction + search recall)
-docs/       DESIGN.md — the build-ready spec
+docs/       USAGE, API, CONFIG guides + DESIGN.md (the build-ready spec)
+plugin/     the Claude Code plugin package
 wayfinder/  the decision map this project was designed through
 ```
 
