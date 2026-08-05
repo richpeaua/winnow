@@ -1,4 +1,4 @@
-# mcp-client — design spec
+# Winnow (`mcp-winnow`) — design spec
 
 A context-bloat-killing agent SDK for MCP. Build-ready design + decision log.
 Grounded in MCP spec revision **2026-07-28** / SDK v2 (`@modelcontextprotocol/client` 2.0.0).
@@ -13,12 +13,12 @@ Connecting an agent to many MCP servers imposes two context taxes:
 
 ## 2. Architecture
 
-Embedded SDK (`import { McpClient }`) — not a standalone gateway. Internally a multi-server MCP client that holds full tool defs privately and exposes a narrow, anti-bloat surface.
+Embedded SDK (`import { Winnow }`) — not a standalone gateway. Internally a multi-server MCP client that holds full tool defs privately and exposes a narrow, anti-bloat surface.
 
 ```
 model / host agent
    |  sees only: search_tools, load_tool, call_tool, run_code   (~4 tools)
-McpClient  ── catalog+index (all defs held internally) ── result-filter ── sandbox
+Winnow  ── catalog+index (all defs held internally) ── result-filter ── sandbox
    |                         |                         |
    └── stdio / Streamable-HTTP  ──►  github, slack, fs, postgres, … (N upstream)
 ```
@@ -33,7 +33,7 @@ Lifecycle: **`searchTools → loadTool → call`**. The SDK holds full defs inte
 
 - **Build:** eager-list at init (connect each server once, paginate `tools/list`, index, then **disconnect**); lazy-reconnect a server only when one of its tools is `call`ed. With a fresh cache, init makes **zero upstream connections** until a call.
 - **At-rest entry** (what a search hit costs): `{ id, name, summary, server }`, `summary` ≤ 1 line, ≈ 20-40 tokens. Full `inputSchema`/description/examples/`outputSchema` withheld until `loadTool` (accepts one or many ids).
-- **Persistence:** disk cache default-on (`~/.cache/mcp-client/`), keyed by server identity/version + spec `ttlMs`/`cacheScope`; `cache:false` forces ephemeral.
+- **Persistence:** disk cache default-on (`~/.cache/mcp-winnow/`), keyed by server identity/version + spec `ttlMs`/`cacheScope`; `cache:false` forces ephemeral.
 - **Freshness:** honor `ttlMs`; when a connection is live, subscribe to `tools/list_changed` and patch incrementally; short headless runs use the snapshot.
 - **Init failure:** a server that fails to list is skipped with a warning and its cached defs used if present (degrade, don't abort); opt-in fail-fast.
 
@@ -65,7 +65,7 @@ Deterministic, always-on. Pipeline per result: **select source → project → c
 ## 7. Public API  *(A2)*
 
 ```ts
-class McpClient {
+class Winnow {
   constructor(config: McpClientConfig)
   init(): Promise<void>
   searchTools(query: string, opts?: { topK?: number }): SearchHit[]
@@ -81,7 +81,7 @@ Meta-tool adapter surfaces `search_tools`, `load_tool`, `call_tool`, `run_code`.
 
 ## 8. Config & secrets  *(G1)*
 
-- **Source:** `mcp-client.config.{ts,js,json,yaml}` (first found) + env overrides + direct constructor object. Precedence: defaults < file < env < constructor arg.
+- **Source:** `mcp-winnow.config.{ts,js,json,yaml}` (first found) + env overrides + direct constructor object. Precedence: defaults < file < env < constructor arg.
 - **Schema (zod, fail-fast):** `servers{}` (stdio `command/args/env` | http `url/headers/auth`), optional per-tool `tools{}` filter policy (F1) and `search{}` boost (S1), `cache`, `defaults.maxTokens`.
 - **Secrets — no inline, headless-safe:** `${ENV_VAR}` interpolation only. stdio via `env`; http via pre-provisioned `bearer` / seeded `oauth` tokens / `client_credentials` grant — all browserless. Interactive OAuth is attended-only and never required.
 

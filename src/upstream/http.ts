@@ -28,7 +28,7 @@ export class HttpUpstream implements UpstreamConnection {
         ...(this.cfg.bearer ? { Authorization: `Bearer ${this.cfg.bearer}` } : {}),
       };
       const transport = new StreamableHTTPClientTransport(new URL(this.cfg.url), { requestInit: { headers } });
-      const client = new Client({ name: "mcp-client", version: "0.0.1" }, { capabilities: {} });
+      const client = new Client({ name: "mcp-winnow", version: "0.0.1" }, { capabilities: {} });
       await client.connect(transport);
       this.client = client;
       return client;

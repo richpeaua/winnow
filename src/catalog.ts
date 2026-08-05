@@ -22,7 +22,7 @@ export class Catalog {
         for (const t of await u.listTools()) this.defs.set(t.id, t);
       } catch (e) {
         skipped.push(u.server);
-        console.warn(`[mcp-client] server "${u.server}" failed to list tools; skipping. ${String(e).split("\n")[0]}`);
+        console.warn(`[mcp-winnow] server "${u.server}" failed to list tools; skipping. ${String(e).split("\n")[0]}`);
       }
     }
     await this.index.build([...this.defs.values()]);

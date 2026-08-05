@@ -1,4 +1,6 @@
-export { McpClient, type McpClientOptions } from "./client.ts";
+export { Winnow, type McpClientOptions } from "./client.ts";
+// Back-compat alias (the class was formerly `McpClient`).
+export { Winnow as McpClient } from "./client.ts";
 export { Catalog } from "./catalog.ts";
 export { SearchIndex } from "./search.ts";
 export { filterResult, DEFAULT_MAX_TOKENS, approxTokens } from "./filter.ts";

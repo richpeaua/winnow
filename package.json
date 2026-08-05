@@ -1,9 +1,9 @@
 {
-  "name": "mcp-client",
+  "name": "mcp-winnow",
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "An embedded TypeScript SDK that lets an agent use many MCP servers without context bloat.",
+  "description": "Winnow — an embedded TypeScript SDK that lets an agent use many MCP servers without context bloat.",
   "exports": {
     ".": "./src/index.ts"
   },

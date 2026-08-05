@@ -1,4 +1,4 @@
-// Core types for the mcp-client SDK. See docs/DESIGN.md.
+// Core types for the mcp-winnow SDK. See docs/DESIGN.md.
 
 /** A full tool definition, held internally by the SDK (never dumped to the model wholesale). */
 export interface ToolDef {

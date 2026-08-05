@@ -27,7 +27,7 @@ export class StdioUpstream implements UpstreamConnection {
         args: this.cfg.args ?? [],
         env: { ...getDefaultEnvironment(), ...(this.cfg.env ?? {}) },
       });
-      const client = new Client({ name: "mcp-client", version: "0.0.1" }, { capabilities: {} });
+      const client = new Client({ name: "mcp-winnow", version: "0.0.1" }, { capabilities: {} });
       await client.connect(transport);
       this.client = client;
       return client;

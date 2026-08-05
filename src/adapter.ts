@@ -1,7 +1,7 @@
 // Meta-tool adapter (A2): surface exactly FOUR tools to a model instead of
 // hundreds — the def-bloat payoff at the model layer. The later thin gateway
 // adapter (deferred fog) wraps this same surface over MCP.
-import type { McpClient } from "./client.ts";
+import type { Winnow } from "./client.ts";
 
 export interface MetaToolDef {
   name: string;
@@ -33,7 +33,7 @@ export const META_TOOLS: MetaToolDef[] = [
 ];
 
 /** Dispatch a meta-tool call to the client. This is the whole model-facing surface. */
-export async function dispatchMetaTool(client: McpClient, name: string, args: any): Promise<unknown> {
+export async function dispatchMetaTool(client: Winnow, name: string, args: any): Promise<unknown> {
   switch (name) {
     case "search_tools": return client.searchTools(args.query, { topK: args.topK });
     case "load_tool": return client.loadTool(args.ids);
