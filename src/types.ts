@@ -61,6 +61,8 @@ export interface ResultFilterPolicy {
 /** Pluggable embedding backend. Absent/unavailable => lexical-only search. */
 export interface Embedder {
   embed(texts: string[]): Promise<number[][]>;
+  /** Optional cleanup (e.g. terminate a worker). Winnow.close() calls it if present. */
+  close?(): Promise<void>;
 }
 
 /** Approximate token counter; injectable so we don't hard-depend on a tokenizer. */

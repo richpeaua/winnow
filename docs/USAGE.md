@@ -184,14 +184,21 @@ A host then connects to one server and sees four tools. `run_code` runs server-s
 Search is hybrid: BM25 (always on) fused with semantic embeddings **when a model is available**.
 
 - **Lexical-only (default headless):** works with zero setup, ~88% recall@8. Add per-tool `aliases` in the tool definitions to lift recall on paraphrased queries.
-- **Hybrid (100% recall@8):** pass an `embedder`. A local one (Transformers.js) runs with no API; for headless, **pre-cache the model** rather than relying on a download.
+- **Hybrid (100% recall@8):** pass an `embedder`. The built-in `localEmbedder` runs a local model (Transformers.js) with no API — **off the main event loop** in a worker thread, so embedding never stalls the loop that serves every other request (matters when one gateway serves many agents).
 
 ```ts
-import { Winnow } from "mcp-winnow";
-const client = new Winnow({ upstreams, embedder: myEmbedder });
+import { Winnow, localEmbedder } from "mcp-winnow";
+
+const embedder = localEmbedder();                 // Xenova/all-MiniLM-L6-v2, in a worker
+const client = new Winnow({ upstreams, embedder });
+await client.init();
+// ... use the client ...
+await client.close();                             // also terminates the embedder worker
 ```
 
-An `Embedder` is just `{ embed(texts: string[]): Promise<number[][]> }` — plug in any local or hosted model.
+Options: `localEmbedder({ model, pooling, normalize, dtype })`. Uses the optional `@huggingface/transformers` dependency — if it's not installed (or the model can't load), search degrades to lexical-only automatically. For headless, **pre-cache the model** rather than relying on a first-run download.
+
+You can also supply your own: an `Embedder` is just `{ embed(texts: string[]): Promise<number[][]>; close?(): Promise<void> }` — plug in any local or hosted model. If a query-time embed fails, that search falls back to lexical rather than erroring.
 
 ## Cache & live updates
 

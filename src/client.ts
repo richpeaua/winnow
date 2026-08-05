@@ -152,6 +152,7 @@ export class Winnow {
     this.unsubscribes = [];
     await this.pool?.close();
     this.pool = undefined;
+    await this.opts.embedder?.close?.();
     await Promise.all(this.opts.upstreams.map((u) => u.close()));
     this.listeners.clear();
   }
