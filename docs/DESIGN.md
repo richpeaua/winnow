@@ -106,6 +106,8 @@ Counted with the target model's real tokenizer. Baseline = all schemas loaded + 
 
 **Reference benchmark:** ~5 servers/~80 tools; task = *"find open PRs with no review in 7 days, post a one-line summary of each to Slack"*; run attended (hybrid) and headless (lexical-only). **Accepted costs (logged, not hidden):** small search/embedding latency; lexical-only recall risk (mitigated by RRF when a model is present); first-`exec` codegen time.
 
+**Validated (`bench/`, see [bench/RESULTS.md](../bench/RESULTS.md)):** on a fixed 52-tool surface with a real tokenizer and the actual JMESPath filter — defs-at-rest **89.8%** (≥85% ✅), fat-call result **12.6× (call) / 82× (exec)**, end-to-end **9.6× (call) / 26× (exec)** (~10× target ✅). Caveats in RESULTS.md; the one unmeasured link is search *recall* (worth validating before/with build).
+
 ## 11. Component choices (from prior-art survey R2)
 
 | Concern | Choice | Why |

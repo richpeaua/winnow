@@ -1,0 +1,14 @@
+{
+  "name": "mcp-client-bench",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Validation benchmark for the mcp-client context-bloat design spec",
+  "scripts": {
+    "bench": "node bench.js"
+  },
+  "dependencies": {
+    "@jmespath-community/jmespath": "^1.1.3",
+    "gpt-tokenizer": "^2.9.0"
+  }
+}
