@@ -60,3 +60,36 @@ test("client: unknown tool id fails fast", async () => {
   await assert.rejects(() => client.call("github:nope", {}), /unknown tool id/);
   await client.close();
 });
+
+test("exec: composes many calls in-sandbox, returns only a small result", async () => {
+  const client = new McpClient({ upstreams: [githubServer(), slackServer()] });
+  await client.init();
+  // list 30 fat PRs, keep only stale (no reviewers) in-sandbox, return count + titles
+  const res = await client.exec(`
+    const prs = await mcp.github.listPullRequests({ state: "open" });
+    const stale = prs.filter(p => (p.requested_reviewers || []).length === 0);
+    return { staleCount: stale.length, titles: stale.map(p => p.title) };
+  `);
+  assert.ok(!res.isError);
+  const out = res.output as any;
+  assert.ok(out.staleCount > 0 && out.staleCount < 30, "filtered a subset");
+  assert.equal(out.titles.length, out.staleCount);
+  assert.ok(res.tokens < 500, "final return is small");
+  await client.close();
+});
+
+test("exec: enforces a timeout on runaway code", async () => {
+  const client = new McpClient({ upstreams: [githubServer()] });
+  await client.init();
+  const res = await client.exec(`while (true) {}`, { timeoutMs: 200 });
+  assert.equal(res.isError, true);
+  await client.close();
+});
+
+test("exec: sandbox has no ambient capabilities (no process/fetch)", async () => {
+  const client = new McpClient({ upstreams: [githubServer()] });
+  await client.init();
+  const res = await client.exec(`return typeof process + "," + typeof fetch;`);
+  assert.equal(res.output, "undefined,undefined");
+  await client.close();
+});

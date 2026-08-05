@@ -46,9 +46,9 @@ const res  = await client.call(hits[0].id, { state: "open" }, {
 | Real stdio transport (`buildUpstreams`) | ✅ implemented — verified against the reference `server-everything` (see `examples/real-stdio.ts`) |
 | Real Streamable-HTTP transport + bearer auth | ✅ implemented (not yet live-tested) |
 | `McpClient.fromConfig()` | ✅ implemented |
-| Code-exec sandbox: QuickJS-WASM (X1) | 🚧 stub (`src/sandbox.ts`) |
+| Code-exec sandbox: sync QuickJS-WASM in a worker + Atomics bridge (X1) | ✅ implemented — `npx tsx examples/exec-demo.ts` (30 fat PRs → 117 tok, 74×) |
 
-The core (search → load → call → filter) is real and drives actual MCP servers over stdio. `npx tsx examples/real-stdio.ts` proves the round-trip. The one remaining stub — the `exec` sandbox — is clearly marked and throws with a pointer to the design.
+Every part of the spec is now implemented. The core drives real MCP servers over stdio (`npx tsx examples/real-stdio.ts`), and `exec` composes many tool calls in a capability-injected sandbox (no ambient `fs`/`net`/`process`), returning only the small computed result. Nothing is stubbed.
 
 ## Layout
 

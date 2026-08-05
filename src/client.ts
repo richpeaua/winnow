@@ -1,7 +1,7 @@
 // The public McpClient facade (A2): searchTools -> loadTool -> call, plus exec
 // (stub) and lifecycle. Every anti-bloat mechanism is exposed exactly once.
 import { Catalog } from "./catalog.ts";
-import { filterResult, approxTokens } from "./filter.ts";
+import { filterResult, approxTokens, DEFAULT_MAX_TOKENS } from "./filter.ts";
 import { runSandbox, type ExecOpts } from "./sandbox.ts";
 import { resolveConfig, buildUpstreams, policiesFromConfig } from "./config.ts";
 import type { CallOpts, CatalogEntry, Embedder, FilteredResult, ResultFilterPolicy, SearchHit, ToolDef, TokenCounter } from "./types.ts";
@@ -70,25 +70,36 @@ export class McpClient {
     return this.catalog.listTools(server);
   }
 
-  async call(id: string, args: unknown, opts: CallOpts = {}): Promise<FilteredResult> {
-    this.assertReady();
+  private get counter() { return this.opts.tokenCounter ?? approxTokens; }
+  private get globalCap() { return this.opts.defaultMaxTokens ?? DEFAULT_MAX_TOKENS; }
+
+  private async rawCall(id: string, args: unknown): Promise<{ raw: unknown; policy?: ResultFilterPolicy }> {
     if (!this.catalog.has(id)) throw new Error(`unknown tool id: ${id}`);
     const [server, name] = splitId(id);
     const upstream = this.byServer.get(server);
     if (!upstream) throw new Error(`no connection for server: ${server}`);
-    const raw = await upstream.callTool(name, args);
-    const policy = this.opts.policies?.[id];
-    return filterResult(
-      raw,
-      { ...opts, policy, maxTokens: opts.maxTokens ?? this.opts.defaultMaxTokens },
-      this.opts.tokenCounter ?? approxTokens
-    );
+    return { raw: await upstream.callTool(name, args), policy: this.opts.policies?.[id] };
   }
 
-  /** Sandboxed multi-tool composition (STUB — see sandbox.ts). */
+  /** Context-facing call: projection + static policy + the hard global cap (F1). */
+  async call(id: string, args: unknown, opts: CallOpts = {}): Promise<FilteredResult> {
+    this.assertReady();
+    const { raw, policy } = await this.rawCall(id, args);
+    return filterResult(raw, { project: opts.project, maxTokens: opts.maxTokens, policy }, this.counter, this.globalCap);
+  }
+
+  /** In-sandbox call: projection/static-policy still apply, but NO blanket cap —
+   *  intermediates never reach context; only exec()'s final return is capped. */
+  private async execCall(id: string, args: unknown): Promise<FilteredResult> {
+    const { raw, policy } = await this.rawCall(id, args);
+    return filterResult(raw, { policy }, this.counter, Infinity);
+  }
+
+  /** Sandboxed multi-tool composition: run code against a `mcp.<server>.<tool>()` API. */
   async exec(code: string, opts: ExecOpts = {}): Promise<FilteredResult> {
     this.assertReady();
-    return runSandbox(code, { call: (id, a) => this.call(id, a) }, opts);
+    const tools = this.catalog.listTools().map((t) => ({ id: t.id, server: t.server, name: t.name }));
+    return runSandbox(code, { call: (id, a) => this.execCall(id, a), tools }, opts, this.counter);
   }
 
   listServers(): Array<{ server: string }> {

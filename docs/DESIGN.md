@@ -56,10 +56,11 @@ Deterministic, always-on. Pipeline per result: **select source → project → c
 
 ## 6. Code execution — sandboxed composition  *(X1, A1)*
 
-- **Runtime:** QuickJS-WASM (`quickjs-emscripten`) wrapped in a `worker_thread` for timeout/memory. Pure-WASM (sealed, portable), capability-injected. `isolated-vm` opt-in perf tier; `node:vm`/`vm2` banned.
-- **Reach:** only generated server modules + a return channel. No ambient fs/net/env/timers. MCP calls go through an injected `__mcpCall` host function that **applies the F1 filter** — code-exec never bypasses result-bloat protection; it adds cross-call filtering so only a small computed value returns.
-- **Generated typed API:** `import { github } from 'mcp:github'; await github.listPullRequests({state:'open'})`. Types from `inputSchema`/`outputSchema` (JSON Schema 2020-12), materialized in-sandbox (zero model-context cost). Only imported servers generated.
-- **`exec` vs `call`:** `call` = one tool; `exec` = compose/loop/join many calls and reduce before returning (biggest headless win — fewer round-trips, in-code filtering).
+- **Runtime:** **synchronous** QuickJS-WASM (`quickjs-emscripten`) inside a `worker_thread`. Host MCP calls bridge **synchronously via `Atomics`**: the worker blocks on `Atomics.wait` while the main thread runs the async (filtered) call and writes the result into a `SharedArrayBuffer`. *(Build finding: the async/asyncify QuickJS variant crashes when jobs are pumped mid-suspension across multiple awaits — the sync-in-worker + Atomics bridge is the robust design, and the worker gives the timeout/memory isolation anyway.)* Pure-WASM (sealed, portable), capability-injected. `isolated-vm` opt-in perf tier; `node:vm`/`vm2` banned.
+- **Reach:** only the generated `mcp.<server>.<tool>()` facade + a return channel. No ambient fs/net/env/timers (verified by test). MCP calls go through an injected `__mcpCall` host function.
+- **Filtering boundary (refined during build):** each bridged call still applies its **projection + static policy**, but intermediate results get **no blanket token cap** — they never reach context, only stay in the sandbox. The **F1 global cap applies once, to `exec`'s final return value**. This is what makes in-sandbox aggregation over large data possible while still guaranteeing the return can't blow up context.
+- **Generated typed API:** `await mcp.github.listPullRequests({state:'open'})`. Types from `inputSchema`/`outputSchema` (JSON Schema 2020-12), materialized in-sandbox (zero model-context cost). Only imported servers generated.
+- **`exec` vs `call`:** `call` = one tool; `exec` = compose/loop/join many calls and reduce before returning (biggest headless win — fewer round-trips, in-code filtering). *Verified: 30 fat PRs → filter stale → post each to Slack → return 117 tok (74× vs raw).*
 
 ## 7. Public API  *(A2)*
 
