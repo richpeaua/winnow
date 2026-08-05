@@ -9,7 +9,7 @@ export { SandboxPool, runSandbox, type ExecOpts, type SandboxPoolOptions } from 
 export { localEmbedder, type LocalEmbedderOptions, type ClosableEmbedder } from "./embedder.js";
 export { META_TOOLS, dispatchMetaTool, type MetaToolDef } from "./adapter.js";
 export { McpClientConfigSchema, resolveConfig, interpolateEnv, buildUpstreams, policiesFromConfig, type McpClientConfig } from "./config.js";
-export { createGateway, serveStdio, serveHttp, type HttpGatewayOptions } from "./gateway/index.js";
+export { createGateway, serveStdio, serveHttp, forwardHeaderAuth, type HttpGatewayOptions, type AuthResolver } from "./gateway/index.js";
 export { MockUpstream, type MockTool } from "./upstream/mock.js";
 export { StdioUpstream, type StdioUpstreamConfig } from "./upstream/stdio.js";
 export { HttpUpstream, type HttpUpstreamConfig } from "./upstream/http.js";

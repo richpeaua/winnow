@@ -4,7 +4,7 @@ import { Catalog } from "./catalog.js";
 import { filterResult, approxTokens, DEFAULT_MAX_TOKENS } from "./filter.js";
 import { SandboxPool, type ExecOpts, type SandboxPoolOptions } from "./sandbox.js";
 import { resolveConfig, buildUpstreams, policiesFromConfig } from "./config.js";
-import type { CallOpts, CatalogEntry, Embedder, FilteredResult, ResultFilterPolicy, SearchHit, ToolDef, TokenCounter } from "./types.js";
+import type { CallContext, CallOpts, CatalogEntry, Embedder, FilteredResult, ResultFilterPolicy, SearchHit, ToolDef, TokenCounter } from "./types.js";
 import type { UpstreamConnection } from "./upstream/types.js";
 
 export interface McpClientOptions {
@@ -109,34 +109,36 @@ export class Winnow {
   private get counter() { return this.opts.tokenCounter ?? approxTokens; }
   private get globalCap() { return this.opts.defaultMaxTokens ?? DEFAULT_MAX_TOKENS; }
 
-  private async rawCall(id: string, args: unknown): Promise<{ raw: unknown; policy?: ResultFilterPolicy }> {
+  private async rawCall(id: string, args: unknown, auth?: Record<string, CallContext>): Promise<{ raw: unknown; policy?: ResultFilterPolicy }> {
     if (!this.catalog.has(id)) throw new Error(`unknown tool id: ${id}`);
     const [server, name] = splitId(id);
     const upstream = this.byServer.get(server);
     if (!upstream) throw new Error(`no connection for server: ${server}`);
-    return { raw: await upstream.callTool(name, args), policy: this.opts.policies?.[id] };
+    return { raw: await upstream.callTool(name, args, auth?.[server]), policy: this.opts.policies?.[id] };
   }
 
-  /** Context-facing call: projection + static policy + the hard global cap (F1). */
+  /** Context-facing call: projection + static policy + the hard global cap (F1).
+   *  `opts.auth` (per-server) overrides the upstream identity for this call. */
   async call(id: string, args: unknown, opts: CallOpts = {}): Promise<FilteredResult> {
     this.assertReady();
-    const { raw, policy } = await this.rawCall(id, args);
+    const { raw, policy } = await this.rawCall(id, args, opts.auth);
     return filterResult(raw, { project: opts.project, maxTokens: opts.maxTokens, policy }, this.counter, this.globalCap);
   }
 
   /** In-sandbox call: projection/static-policy still apply, but NO blanket cap —
    *  intermediates never reach context; only exec()'s final return is capped. */
-  private async execCall(id: string, args: unknown): Promise<FilteredResult> {
-    const { raw, policy } = await this.rawCall(id, args);
+  private async execCall(id: string, args: unknown, auth?: Record<string, CallContext>): Promise<FilteredResult> {
+    const { raw, policy } = await this.rawCall(id, args, auth);
     return filterResult(raw, { policy }, this.counter, Infinity);
   }
 
-  /** Sandboxed multi-tool composition: run code against a `mcp.<server>.<tool>()` API. */
-  async exec(code: string, opts: ExecOpts = {}): Promise<FilteredResult> {
+  /** Sandboxed multi-tool composition: run code against a `mcp.<server>.<tool>()` API.
+   *  `opts.auth` (per-server) applies to every in-sandbox call. */
+  async exec(code: string, opts: ExecOpts & { auth?: Record<string, CallContext> } = {}): Promise<FilteredResult> {
     this.assertReady();
     const tools = this.catalog.listTools().map((t) => ({ id: t.id, server: t.server, name: t.name }));
-    if (!this.pool) this.pool = new SandboxPool((id, a) => this.execCall(id, a), this.opts.sandbox, this.counter);
-    return this.pool.run(code, tools, opts);
+    if (!this.pool) this.pool = new SandboxPool((id, a, ctx) => this.execCall(id, a, (ctx as { auth?: Record<string, CallContext> } | undefined)?.auth), this.opts.sandbox, this.counter);
+    return this.pool.run(code, tools, opts, { auth: opts.auth });
   }
 
   listServers(): Array<{ server: string }> {

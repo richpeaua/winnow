@@ -1,4 +1,4 @@
-import type { ToolDef, ToolResult } from "../types.js";
+import type { CallContext, ToolDef, ToolResult } from "../types.js";
 
 /**
  * A connection to one upstream MCP server. Implementations connect lazily
@@ -11,8 +11,9 @@ export interface UpstreamConnection {
   readonly identity?: string;
   /** List this server's tools (paginated internally). Connects if needed. */
   listTools(): Promise<ToolDef[]>;
-  /** Call a tool by its short name (without the `server:` prefix). */
-  callTool(name: string, args: unknown): Promise<ToolResult>;
+  /** Call a tool by its short name (without the `server:` prefix). `ctx` carries
+   *  a per-call auth override for multi-tenant passthrough (HTTP upstreams). */
+  callTool(name: string, args: unknown, ctx?: CallContext): Promise<ToolResult>;
   /**
    * Opt-in live watch: invoke `onChanged` when the server signals its tool set
    * changed (MCP `notifications/tools/list_changed`). Returns an unsubscribe fn.

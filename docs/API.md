@@ -59,6 +59,7 @@ Call one tool by `server:tool` id. `opts`:
 
 - `project?: string` — a [JMESPath](USAGE.md#result-filtering-jmespath) expression to reshape/trim the result.
 - `maxTokens?: number` — lower the cap for this call (can only lower, never raise).
+- `auth?: Record<string, CallContext>` — per-upstream identity override (multi-tenant passthrough), keyed by server name. `CallContext` is `{ bearer?, headers? }`. Also accepted by `exec(code, { auth })`, where it applies to every in-sandbox call.
 
 Returns `{ output, tokens, truncated, note?, isError? }`.
 
@@ -134,10 +135,24 @@ new HttpUpstream("api", { url: "https://.../mcp", getBearer: clientCredentials({
 ## Gateway
 
 ```ts
-import { createGateway, serveStdio, serveHttp } from "mcp-winnow";
+import { createGateway, serveStdio, serveHttp, forwardHeaderAuth } from "mcp-winnow";
 
 await serveStdio(client);                          // local hosts (Claude Desktop, Cursor, plugin)
 await serveHttp(client, { port: 8080, token });    // remote/hosted (Streamable HTTP + bearer)
 ```
+
+### Multi-tenant auth passthrough (`serveHttp`)
+
+`serveHttp(client, { port, token, resolveAuth })` — `resolveAuth?: (req) => Record<string, CallContext> | undefined` maps an incoming request to per-upstream identity, applied to that request's `call_tool` / `run_code`. Return `undefined` to use the configured identity (the default; passthrough is opt-in).
+
+```ts
+// Batteries-included: forward a per-server request header as that upstream's bearer.
+await serveHttp(client, { port: 8080, token, resolveAuth: forwardHeaderAuth({ github: "X-Winnow-Github-Auth" }) });
+
+// Or programmable: map an authenticated identity to upstream credentials however you like.
+await serveHttp(client, { port: 8080, token, resolveAuth: (req) => ({ github: { bearer: lookupToken(req) } }) });
+```
+
+The same mapping is available config-only via `gateway.forwardAuth` (see [CONFIG.md](CONFIG.md#multi-tenant-auth-passthrough-http-gateway)) — the CLI/plugin wires it for you.
 
 See also: [USAGE.md](USAGE.md) for task recipes, [CONFIG.md](CONFIG.md) for the config schema.

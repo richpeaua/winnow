@@ -1,6 +1,6 @@
 // In-memory upstream server for tests/demo — lets the SDK run end-to-end with
 // zero network. Real transports (stdio/http) implement the same interface.
-import type { ToolDef, ToolResult } from "../types.js";
+import type { CallContext, ToolDef, ToolResult } from "../types.js";
 import type { UpstreamConnection } from "./types.js";
 
 export interface MockTool {
@@ -8,7 +8,7 @@ export interface MockTool {
   description: string;
   inputSchema: unknown;
   aliases?: string[];
-  handler: (args: any) => ToolResult | unknown;
+  handler: (args: any, ctx?: CallContext) => ToolResult | unknown;
 }
 
 export class MockUpstream implements UpstreamConnection {
@@ -42,10 +42,10 @@ export class MockUpstream implements UpstreamConnection {
     }));
   }
 
-  async callTool(name: string, args: unknown): Promise<ToolResult> {
+  async callTool(name: string, args: unknown, ctx?: CallContext): Promise<ToolResult> {
     const tool = this.tools.find((t) => t.name === name);
     if (!tool) return { isError: true, content: [{ type: "text", text: `no such tool: ${name}` }] };
-    const out = tool.handler(args as any);
+    const out = tool.handler(args as any, ctx);
     // Normalize: object -> structuredContent, string -> text block.
     if (out && typeof out === "object" && !Array.isArray(out)) return { structuredContent: out };
     if (Array.isArray(out)) return { structuredContent: out };

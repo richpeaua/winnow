@@ -48,6 +48,8 @@ export interface CallOpts {
   project?: string;
   /** Hard token cap; may only LOWER the server/global default, never raise it. */
   maxTokens?: number;
+  /** Per-upstream auth override (multi-tenant passthrough), keyed by server name. */
+  auth?: Record<string, CallContext>;
 }
 
 /** Static per-tool result-filter policy (from config). */
@@ -56,6 +58,17 @@ export interface ResultFilterPolicy {
   maxTokens?: number;
   truncate?: "head" | "tail" | "smart";
   paginate?: boolean;
+}
+
+/** Per-call auth override for an upstream, for multi-tenant passthrough: the
+ *  identity a single tool call should act as, overriding the upstream's configured
+ *  auth. Keyed by server name in CallOpts.auth. Applies to HTTP upstreams; stdio
+ *  upstreams have a process-level identity and ignore it. */
+export interface CallContext {
+  /** Bearer token to use for this call (sets Authorization: Bearer <token>). */
+  bearer?: string;
+  /** Extra/override request headers for this call (HTTP upstreams). */
+  headers?: Record<string, string>;
 }
 
 /** Pluggable embedding backend. Absent/unavailable => lexical-only search. */

@@ -179,6 +179,19 @@ mcp-winnow gateway --config winnow.config.json --http --port 8080   # http (bear
 
 A host then connects to one server and sees four tools. `run_code` runs server-side in Winnow's sandbox, so even hosts that can't import TypeScript get full composition. See the [Claude Code plugin](../plugin/README.md) for the marketplace install.
 
+### Multi-tenant: per-agent upstream identity
+
+By default every request through the gateway hits each upstream as the same configured identity. When one gateway serves many agents that must act as **different** upstream identities, forward a per-agent bearer:
+
+```ts
+import { serveHttp, forwardHeaderAuth } from "mcp-winnow";
+
+// An agent's request header `X-Winnow-Github-Auth: Bearer <token>` becomes that call's GitHub bearer.
+await serveHttp(client, { port: 8080, token, resolveAuth: forwardHeaderAuth({ github: "X-Winnow-Github-Auth" }) });
+```
+
+Or wire it from config with `gateway.forwardAuth` (no code — see [CONFIG.md](CONFIG.md#multi-tenant-auth-passthrough-http-gateway)). For custom mapping (JWT subject → credentials, a vault lookup), pass your own `resolveAuth: (req) => ({ github: { bearer } })`. It's strictly opt-in; a request without the identity uses the configured one. HTTP upstreams keep a small per-identity connection cache so repeat calls from the same agent reuse a connection.
+
 ## Search & headless embeddings
 
 Search is hybrid: BM25 (always on) fused with semantic embeddings **when a model is available**.
