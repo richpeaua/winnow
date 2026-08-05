@@ -35,6 +35,14 @@ A **locked, build-ready design spec + decision log** for `mcp-client`: an embedd
 - [Define the bloat-reduction success metric & token accounting](tickets/08-bloat-success-metric.md) — real tokenizer; targets ≥85% defs-at-rest, ≤cap per result, ~10× end-to-end; fixed 5-server/80-tool benchmark run attended + headless.
 - [Assemble the build-ready design spec](tickets/09-assemble-spec.md) — **destination reached**; full spec + decision log at [docs/DESIGN.md](../docs/DESIGN.md).
 
+## Post-v1 backlog
+
+<!-- The destination (build-ready spec) was reached AND implemented on master; SDK is feature-complete and both transports are live-verified. These are follow-on build tickets beyond the original destination. -->
+
+- [Persistent cache + list_changed subscriptions](tickets/13-persistent-cache-listchanged.md) — on-disk cache keyed by version/`ttlMs`; live incremental index updates. Catalog is in-memory per process today.
+- [HTTP auth — pre-provisioned OAuth + client_credentials grants](tickets/14-http-oauth-grants.md) — bearer is live-verified; the other two browserless grants are config-typed but unbuilt.
+- [Package for publish](tickets/15-package-for-publish.md) — build to `dist`, `exports`/types, worker resolution in prod, `npm pack` smoke test.
+
 ## Not yet specified
 
 <!-- in-scope fog; graduates into tickets as the frontier advances -->
