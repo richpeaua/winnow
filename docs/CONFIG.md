@@ -29,7 +29,8 @@ The gateway CLI reads a JSON file: `mcp-winnow gateway --config winnow.config.js
   "servers": { /* required — map of name -> server config (see below) */ },
   "cache": true,                      // default true; false = ephemeral (no disk cache)
   "defaults": { "maxTokens": 2000 },  // global result-filter cap (F1)
-  "search":   { "topK": 8 }           // default number of search hits
+  "search":   { "topK": 8 },          // default number of search hits
+  "sandbox":  { "maxWorkers": 4 }     // bound run_code concurrency (see below)
 }
 ```
 
@@ -39,6 +40,27 @@ The gateway CLI reads a JSON file: `mcp-winnow gateway --config winnow.config.js
 | `cache` | `boolean` | `true` | Persist the catalog to `~/.cache/winnow`. `false` = rebuild every process. |
 | `defaults.maxTokens` | `int > 0` | `2000` | Hard ceiling on any single tool result's tokens. An agent can lower it per call but never raise it. |
 | `search.topK` | `int > 0` | `8` | How many hits `searchTools` returns by default. |
+| `sandbox` | `object` | — | Bound `run_code` concurrency (see [Sandbox pool](#sandbox-pool)). |
+
+## Sandbox pool
+
+`run_code` runs each exec in a worker thread holding a 32 MB SharedArrayBuffer + a QuickJS heap. Under many concurrent execs (e.g. one shared HTTP gateway serving a fleet), a bounded pool caps how many run at once, so **memory is flat regardless of agent count** — `maxWorkers × (32 MB + heap)` — with a queue + backpressure past the cap.
+
+```jsonc
+"sandbox": {
+  "maxWorkers": 4,        // max concurrent execs; default max(1, min(4, cpus-1))
+  "maxQueue": 32,         // queued execs before backpressure rejects; default maxWorkers*8
+  "queueTimeoutMs": 10000 // reject an exec that waits longer than this in the queue
+}
+```
+
+| Field | Type | Default | Notes |
+|---|---|---|---|
+| `maxWorkers` | `int > 0` | `max(1, min(4, cpus-1))` | Concurrent sandbox workers. Raise for more parallel `run_code`, at ~(32 MB + heap) each. |
+| `maxQueue` | `int > 0` | `maxWorkers * 8` | Execs allowed to wait for a free worker. Past this, `run_code` returns an error result (backpressure) rather than spawning past the cap. |
+| `queueTimeoutMs` | `int > 0` | `10000` | An exec queued longer than this fails with a timeout error result. |
+
+Workers are spawned lazily (none until the first `run_code`) and reused across execs; each exec runs in a fresh QuickJS context (no state leaks between execs).
 
 ## Server config
 

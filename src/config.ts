@@ -43,6 +43,13 @@ export const McpClientConfigSchema = z.object({
   cache: z.boolean().default(true),
   defaults: z.object({ maxTokens: z.number().int().positive().default(2000) }).default({ maxTokens: 2000 }),
   search: z.object({ topK: z.number().int().positive().default(8) }).default({ topK: 8 }),
+  sandbox: z
+    .object({
+      maxWorkers: z.number().int().positive().optional(),
+      maxQueue: z.number().int().positive().optional(),
+      queueTimeoutMs: z.number().int().positive().optional(),
+    })
+    .optional(),
 });
 
 export type McpClientConfig = z.infer<typeof McpClientConfigSchema>;

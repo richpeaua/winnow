@@ -5,7 +5,9 @@ All notable changes to Winnow are documented here. This project adheres to
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Bounded sandbox worker pool** (#4): `run_code` execs now share a capped pool of reused workers (fresh QuickJS context per exec) with a queue + backpressure, instead of spawning an unbounded worker per exec. Sandbox memory is now flat at `maxWorkers × (32 MB + heap)` regardless of concurrent-agent count (measured: ~129 MB at 20 concurrent execs, vs ~641 MB before). Configurable via `sandbox: { maxWorkers, maxQueue, queueTimeoutMs }`. Part of the [multi-agent scale epic](https://github.com/richpeaua/winnow/issues/8).
 
 ## [0.1.0] — initial
 

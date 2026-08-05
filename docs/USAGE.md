@@ -139,6 +139,8 @@ const res = await client.exec(`
 
 The sandbox is capability-injected: no `fs`, `net`, `env`, `process`, or timers — only the `mcp.*` facade. It has a wall-clock timeout (`timeoutMs`, default 5s) and memory cap (`memoryMb`, default 64).
 
+Under concurrency (e.g. one shared HTTP gateway serving many agents), execs share a **bounded worker pool** — capped concurrent workers + a queue with backpressure — so sandbox memory stays flat regardless of how many agents call at once. Tune with `sandbox: { maxWorkers, maxQueue }` (see [CONFIG.md](CONFIG.md#sandbox-pool)).
+
 ## Using Winnow from an agent (the 4 meta-tools)
 
 Give the model **four** tools instead of hundreds:

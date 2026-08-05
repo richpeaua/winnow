@@ -29,7 +29,7 @@
   "files": ["dist", "docs", "README.md", "CHANGELOG.md", "LICENSE"],
   "engines": { "node": ">=20" },
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && cp src/*-worker.mjs dist/",
     "prepublishOnly": "npm run build",
     "demo": "tsx examples/demo.ts",
     "gateway": "tsx src/gateway/cli.ts",
