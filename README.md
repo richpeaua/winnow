@@ -1,6 +1,8 @@
-# mcp-client
+# Winnow
 
-An embedded TypeScript SDK that lets an agent use many MCP servers **without context bloat** — it kills both tool-definition bloat and tool-result bloat, and works the same attended or headless.
+> Keep the grain, drop the bloat.
+
+**Winnow** (`mcp-winnow`) is an embedded TypeScript SDK that lets an agent use many MCP servers **without context bloat** — it winnows away both tool-definition bloat and tool-result bloat, and works the same attended or headless.
 
 Full design + decision log: [`docs/DESIGN.md`](docs/DESIGN.md). Validation numbers: [`bench/RESULTS.md`](bench/RESULTS.md).
 
@@ -21,9 +23,9 @@ npm run typecheck
 ```
 
 ```ts
-import { McpClient } from "mcp-client";
+import { Winnow } from "mcp-winnow";
 
-const client = new McpClient({ upstreams: [/* your MCP server connections */] });
+const client = new Winnow({ upstreams: [/* your MCP server connections */] });
 await client.init();
 
 const hits = await client.searchTools("list open pull requests"); // minimal entries + score
@@ -41,11 +43,11 @@ const res  = await client.call(hits[0].id, { state: "open" }, {
 | Hybrid search: Orama BM25 + optional embedder + RRF (S1) | ✅ implemented |
 | Result-filter: JMESPath + hard cap + base64 stubbing (F1) | ✅ implemented |
 | Config + `${ENV}` interpolation, zod fail-fast (G1) | ✅ implemented |
-| Public `McpClient` facade + 4 meta-tool adapter (A2) | ✅ implemented |
+| Public `Winnow` facade + 4 meta-tool adapter (A2) | ✅ implemented |
 | Pluggable upstream + in-memory mock | ✅ implemented |
 | Real stdio transport (`buildUpstreams`) | ✅ implemented — verified against the reference `server-everything` (see `examples/real-stdio.ts`) |
 | Real Streamable-HTTP transport + bearer auth | ✅ implemented + verified live against a local server, incl. 401 on bad token (`examples/real-http.ts`) |
-| `McpClient.fromConfig()` | ✅ implemented |
+| `Winnow.fromConfig()` | ✅ implemented |
 | Code-exec sandbox: sync QuickJS-WASM in a worker + Atomics bridge (X1) | ✅ implemented — `npx tsx examples/exec-demo.ts` (30 fat PRs → 117 tok, 74×) |
 
 Every part of the spec is now implemented. The core drives real MCP servers over stdio (`npx tsx examples/real-stdio.ts`), and `exec` composes many tool calls in a capability-injected sandbox (no ambient `fs`/`net`/`process`), returning only the small computed result. Nothing is stubbed.

@@ -1,12 +1,12 @@
 // Demo of the exec path: compose many tool calls in-sandbox, return only a tiny
 // result. The 30 fat PRs never leave the sandbox — only the summary hits context.
 // Run: npx tsx examples/exec-demo.ts
-import { McpClient, approxTokens } from "../src/index.ts";
+import { Winnow, approxTokens } from "../src/index.ts";
 import { githubServer, slackServer } from "./servers.ts";
 
 const tk = (v: unknown) => approxTokens(JSON.stringify(v));
 
-const client = new McpClient({ upstreams: [githubServer(), slackServer()] });
+const client = new Winnow({ upstreams: [githubServer(), slackServer()] });
 await client.init();
 
 const raw = await (githubServer()).callTool("list_pull_requests", {});

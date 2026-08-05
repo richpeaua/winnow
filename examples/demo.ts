@@ -1,11 +1,11 @@
 // End-to-end demo: search -> loadTool -> call, showing the anti-bloat path.
 // Run: npm run demo
-import { McpClient, META_TOOLS, approxTokens } from "../src/index.ts";
+import { Winnow, META_TOOLS, approxTokens } from "../src/index.ts";
 import { githubServer, slackServer } from "./servers.ts";
 
 const tk = (v: unknown) => approxTokens(JSON.stringify(v));
 
-const client = new McpClient({ upstreams: [githubServer(), slackServer()] });
+const client = new Winnow({ upstreams: [githubServer(), slackServer()] });
 const info = await client.init();
 console.log(`initialized: ${info.tools} tools, hybrid search: ${info.hybrid}, skipped: [${info.skipped}]\n`);
 

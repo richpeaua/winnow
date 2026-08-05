@@ -6,7 +6,7 @@ import http from "node:http";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { McpClient } from "../src/index.ts";
+import { Winnow } from "../src/index.ts";
 import { HttpUpstream } from "../src/upstream/http.ts";
 
 const TOKEN = "s3cret-" + "token";
@@ -50,7 +50,7 @@ await new Promise<void>((r) => httpServer.listen(PORT, r));
 console.log(`local Streamable-HTTP MCP server listening on :${PORT} (bearer required)\n`);
 
 // 1. Happy path: correct bearer.
-const client = new McpClient({
+const client = new Winnow({
   upstreams: [new HttpUpstream("demo", { url: `http://127.0.0.1:${PORT}/mcp`, bearer: TOKEN })],
 });
 const info = await client.init();
@@ -69,7 +69,7 @@ await client.close();
 // 2. Negative path: a wrong bearer must be rejected by the server (401). Per the
 // C1 catalog model, a per-server list failure is warn-and-skip, so we assert the
 // server was skipped and no tools leaked in — proving the 401 actually landed.
-const bad = new McpClient({ upstreams: [new HttpUpstream("demo", { url: `http://127.0.0.1:${PORT}/mcp`, bearer: "wrong" })] });
+const bad = new Winnow({ upstreams: [new HttpUpstream("demo", { url: `http://127.0.0.1:${PORT}/mcp`, bearer: "wrong" })] });
 const badInfo = await bad.init();
 await bad.close();
 const rejected = badInfo.skipped.includes("demo") && badInfo.tools === 0;

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { McpClient, filterResult, DEFAULT_MAX_TOKENS, approxTokens } from "../src/index.ts";
+import { Winnow, filterResult, DEFAULT_MAX_TOKENS, approxTokens } from "../src/index.ts";
 import { githubServer, slackServer } from "../examples/servers.ts";
 
 test("filter: JMESPath projection trims a fat result", () => {
@@ -27,7 +27,7 @@ test("filter: base64 image blocks are stubbed, not dumped", () => {
 });
 
 test("client: search -> loadTool -> call end-to-end", async () => {
-  const client = new McpClient({ upstreams: [githubServer(), slackServer()] });
+  const client = new Winnow({ upstreams: [githubServer(), slackServer()] });
   const info = await client.init();
   assert.ok(info.tools >= 6);
 
@@ -44,7 +44,7 @@ test("client: search -> loadTool -> call end-to-end", async () => {
 });
 
 test("client: fat call is filtered below the cap", async () => {
-  const client = new McpClient({ upstreams: [githubServer()] });
+  const client = new Winnow({ upstreams: [githubServer()] });
   await client.init();
   const res = await client.call("github:list_pull_requests", { state: "open" }, {
     project: "[].{number: number, title: title}",
@@ -55,14 +55,14 @@ test("client: fat call is filtered below the cap", async () => {
 });
 
 test("client: unknown tool id fails fast", async () => {
-  const client = new McpClient({ upstreams: [githubServer()] });
+  const client = new Winnow({ upstreams: [githubServer()] });
   await client.init();
   await assert.rejects(() => client.call("github:nope", {}), /unknown tool id/);
   await client.close();
 });
 
 test("exec: composes many calls in-sandbox, returns only a small result", async () => {
-  const client = new McpClient({ upstreams: [githubServer(), slackServer()] });
+  const client = new Winnow({ upstreams: [githubServer(), slackServer()] });
   await client.init();
   // list 30 fat PRs, keep only stale (no reviewers) in-sandbox, return count + titles
   const res = await client.exec(`
@@ -79,7 +79,7 @@ test("exec: composes many calls in-sandbox, returns only a small result", async 
 });
 
 test("exec: enforces a timeout on runaway code", async () => {
-  const client = new McpClient({ upstreams: [githubServer()] });
+  const client = new Winnow({ upstreams: [githubServer()] });
   await client.init();
   const res = await client.exec(`while (true) {}`, { timeoutMs: 200 });
   assert.equal(res.isError, true);
@@ -87,7 +87,7 @@ test("exec: enforces a timeout on runaway code", async () => {
 });
 
 test("exec: sandbox has no ambient capabilities (no process/fetch)", async () => {
-  const client = new McpClient({ upstreams: [githubServer()] });
+  const client = new Winnow({ upstreams: [githubServer()] });
   await client.init();
   const res = await client.exec(`return typeof process + "," + typeof fetch;`);
   assert.equal(res.output, "undefined,undefined");

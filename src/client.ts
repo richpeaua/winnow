@@ -1,4 +1,4 @@
-// The public McpClient facade (A2): searchTools -> loadTool -> call, plus exec
+// The public Winnow facade (A2): searchTools -> loadTool -> call, plus exec
 // (stub) and lifecycle. Every anti-bloat mechanism is exposed exactly once.
 import { Catalog } from "./catalog.ts";
 import { filterResult, approxTokens, DEFAULT_MAX_TOKENS } from "./filter.ts";
@@ -22,7 +22,7 @@ export interface McpClientOptions {
   policies?: Record<string, ResultFilterPolicy>;
 }
 
-export class McpClient {
+export class Winnow {
   private catalog: Catalog;
   private byServer = new Map<string, UpstreamConnection>();
   private ready = false;
@@ -34,9 +34,9 @@ export class McpClient {
   }
 
   /** Build a client from a raw config object (file/env/programmatic). */
-  static fromConfig(rawConfig: unknown, extra: Partial<Omit<McpClientOptions, "upstreams" | "policies">> = {}): McpClient {
+  static fromConfig(rawConfig: unknown, extra: Partial<Omit<McpClientOptions, "upstreams" | "policies">> = {}): Winnow {
     const config = resolveConfig(rawConfig);
-    return new McpClient({
+    return new Winnow({
       upstreams: buildUpstreams(config),
       policies: policiesFromConfig(config),
       defaultMaxTokens: config.defaults.maxTokens,
