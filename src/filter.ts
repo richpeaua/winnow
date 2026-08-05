@@ -47,16 +47,18 @@ function capTokens(value: unknown, maxTokens: number, count: TokenCounter): { va
 export function filterResult(
   raw: ToolResult | unknown,
   opts: CallOpts & { policy?: ResultFilterPolicy } = {},
-  count: TokenCounter = approxTokens
+  count: TokenCounter = approxTokens,
+  /** Context-facing default cap. Pass Infinity for in-sandbox intermediates (never hit context). */
+  globalCeiling: number = DEFAULT_MAX_TOKENS
 ): FilteredResult {
   const policy = opts.policy ?? {};
   const isError = !!(raw && typeof raw === "object" && (raw as ToolResult).isError);
 
-  // Hard ceiling: min of global default and any configured/override cap. Override may only lower.
+  // Hard ceiling: min of global cap and any configured/override cap. Override may only lower.
   const ceiling = Math.min(
-    DEFAULT_MAX_TOKENS,
-    policy.maxTokens ?? DEFAULT_MAX_TOKENS,
-    opts.maxTokens ?? DEFAULT_MAX_TOKENS
+    globalCeiling,
+    policy.maxTokens ?? globalCeiling,
+    opts.maxTokens ?? globalCeiling
   );
 
   const source = selectSource(raw);
