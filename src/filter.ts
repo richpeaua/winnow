@@ -1,7 +1,7 @@
 // F1 result-filter: select source -> project -> cap -> annotate.
 // The one invariant: the size cap is a hard ceiling the agent can only lower.
 import { search as jmespath } from "@jmespath-community/jmespath";
-import type { CallOpts, FilteredResult, ResultFilterPolicy, ToolResult, TokenCounter } from "./types.ts";
+import type { CallOpts, FilteredResult, ResultFilterPolicy, ToolResult, TokenCounter } from "./types.js";
 
 export const DEFAULT_MAX_TOKENS = 2000;
 

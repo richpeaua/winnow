@@ -1,8 +1,8 @@
 // Real stdio upstream, using @modelcontextprotocol/sdk. Lazy-connect per the
 // catalog model: connects on first listTools/callTool, stays warm until close().
 // The SDK is an optionalDependency, imported dynamically so the core stays light.
-import type { ToolDef, ToolResult } from "../types.ts";
-import type { UpstreamConnection } from "./types.ts";
+import type { ToolDef, ToolResult } from "../types.js";
+import type { UpstreamConnection } from "./types.js";
 
 export interface StdioUpstreamConfig {
   command: string;

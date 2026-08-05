@@ -1,7 +1,7 @@
 // In-memory upstream server for tests/demo — lets the SDK run end-to-end with
 // zero network. Real transports (stdio/http) implement the same interface.
-import type { ToolDef, ToolResult } from "../types.ts";
-import type { UpstreamConnection } from "./types.ts";
+import type { ToolDef, ToolResult } from "../types.js";
+import type { UpstreamConnection } from "./types.js";
 
 export interface MockTool {
   name: string;

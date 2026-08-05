@@ -1,7 +1,7 @@
 // Meta-tool adapter (A2): surface exactly FOUR tools to a model instead of
 // hundreds — the def-bloat payoff at the model layer. The later thin gateway
 // adapter (deferred fog) wraps this same surface over MCP.
-import type { Winnow } from "./client.ts";
+import type { Winnow } from "./client.js";
 
 export interface MetaToolDef {
   name: string;

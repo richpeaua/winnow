@@ -1,11 +1,11 @@
 // The public Winnow facade (A2): searchTools -> loadTool -> call, plus exec
 // (stub) and lifecycle. Every anti-bloat mechanism is exposed exactly once.
-import { Catalog } from "./catalog.ts";
-import { filterResult, approxTokens, DEFAULT_MAX_TOKENS } from "./filter.ts";
-import { runSandbox, type ExecOpts } from "./sandbox.ts";
-import { resolveConfig, buildUpstreams, policiesFromConfig } from "./config.ts";
-import type { CallOpts, CatalogEntry, Embedder, FilteredResult, ResultFilterPolicy, SearchHit, ToolDef, TokenCounter } from "./types.ts";
-import type { UpstreamConnection } from "./upstream/types.ts";
+import { Catalog } from "./catalog.js";
+import { filterResult, approxTokens, DEFAULT_MAX_TOKENS } from "./filter.js";
+import { runSandbox, type ExecOpts } from "./sandbox.js";
+import { resolveConfig, buildUpstreams, policiesFromConfig } from "./config.js";
+import type { CallOpts, CatalogEntry, Embedder, FilteredResult, ResultFilterPolicy, SearchHit, ToolDef, TokenCounter } from "./types.js";
+import type { UpstreamConnection } from "./upstream/types.js";
 
 export interface McpClientOptions {
   /** Upstream servers. (Config-driven wiring is a separate stub; inject here.) */

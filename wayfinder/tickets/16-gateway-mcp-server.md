@@ -3,8 +3,8 @@ id: P4
 title: Gateway adapter — run Winnow as an MCP server (stdio + HTTP)
 type: task
 labels: [wayfinder:ticket, wayfinder:task, post-v1, integration]
-status: open
-assignee:
+status: closed
+assignee: lpeaua
 blocked_by: []
 map: map.md
 ---
@@ -19,3 +19,7 @@ Build a gateway: an MCP **server** (via `@modelcontextprotocol/sdk` `McpServer`)
 - **`run_code` clarification:** over the gateway it runs **server-side in Winnow's sandbox** against the real upstreams — full power. The only thing gateway consumers lose vs the direct SDK is *dev-time TypeScript types* on the generated `mcp.*` API (irrelevant for Claude Desktop/Cursor/Python). (Corrects the earlier "degrades to a generic exec tool" framing.)
 
 Acceptance: add the stdio server entry to a real host (or drive it with the SDK's own client) and complete search → load → call → run_code end-to-end; plus an HTTP deploy example authenticating with a bearer. Touches new `src/gateway/`, a `bin`, and packaging (P3).
+
+## Resolution
+
+Shipped in PR #2. `createGateway(winnow)` exposes exactly the 4 meta-tools; `serveStdio` + `serveHttp` (bearer) transports; `src/gateway/cli.ts` config-driven entry (`bin` wired in P3). Verified **live** (`examples/gateway-demo.ts`: raw MCP host → gateway → real `server-everything` over stdio; search→call→run_code, run_code composing server-side) and **unit** (`test/gateway.test.ts`, in-memory transport). `run_code` runs server-side in Winnow's sandbox = full power for hosts that can't import TS. Unblocks P5.

@@ -3,7 +3,7 @@
 // Winnow hides N upstream servers behind search/load/call/run_code.
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { Winnow } from "../client.ts";
+import type { Winnow } from "../client.js";
 
 const asContent = (v: unknown) => ({
   content: [{ type: "text" as const, text: typeof v === "string" ? v : JSON.stringify(v) }],

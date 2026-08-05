@@ -3,7 +3,7 @@
 // embedder is available. Validated in bench/recall.js (hybrid 100% recall@8,
 // lexical 88%) -> callers should pre-provision an embedder for headless.
 import { create, insertMultiple, search as oramaSearch } from "@orama/orama";
-import type { Embedder, SearchHit, ToolDef } from "./types.ts";
+import type { Embedder, SearchHit, ToolDef } from "./types.js";
 
 function indexText(t: ToolDef): string {
   const props = (t.inputSchema as any)?.properties ?? {};

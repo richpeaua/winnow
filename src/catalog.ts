@@ -1,8 +1,8 @@
 // C1 progressive-disclosure catalog: hold full defs internally, expose minimal
 // entries; eager-list at init, then the client reconnects per call.
-import type { CatalogEntry, Embedder, SearchHit, ToolDef } from "./types.ts";
-import { SearchIndex } from "./search.ts";
-import type { UpstreamConnection } from "./upstream/types.ts";
+import type { CatalogEntry, Embedder, SearchHit, ToolDef } from "./types.js";
+import { SearchIndex } from "./search.js";
+import type { UpstreamConnection } from "./upstream/types.js";
 
 export class Catalog {
   private defs = new Map<string, ToolDef>();

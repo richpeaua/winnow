@@ -50,8 +50,9 @@ const res  = await client.call(hits[0].id, { state: "open" }, {
 | `Winnow.fromConfig()` | ✅ implemented |
 | Code-exec sandbox: sync QuickJS-WASM in a worker + Atomics bridge (X1) | ✅ implemented — `npx tsx examples/exec-demo.ts` (30 fat PRs → 117 tok, 74×) |
 | Gateway: run Winnow as an MCP server, stdio + HTTP (P4) | ✅ implemented — `npx tsx examples/gateway-demo.ts` (host → gateway → real upstream) |
+| Packaged for publish: `dist` build, types, `mcp-winnow` bin (P3) | ✅ `npm run build`; verified via `npm pack` → clean install → bin runs |
 
-Every part of the spec is implemented, plus the gateway that makes it installable into any MCP host.
+Every part of the spec is implemented, plus the gateway that makes it installable into any MCP host, packaged so `npx -y mcp-winnow` works.
 
 ## Install into any MCP host (gateway)
 
@@ -64,7 +65,7 @@ Winnow can run as an MCP **server** exposing just the 4 meta-tools — so a host
 }
 ```
 
-`winnow.config.json` lists the upstream servers to aggregate (same schema as `Winnow.fromConfig`). Remote/hosted instead: `serveHttp(winnow, { port, token })` (Streamable-HTTP + bearer). The `npx` bin lands with packaging (P3); today run it via `npx tsx src/gateway/cli.ts --config winnow.config.json`.
+`winnow.config.json` lists the upstream servers to aggregate (same schema as `Winnow.fromConfig`). Remote/hosted instead: `serveHttp(winnow, { port, token })` (Streamable-HTTP + bearer). Build the bin with `npm run build`; from source run `npx tsx src/gateway/cli.ts --config winnow.config.json`.
 
 ## Layout
 

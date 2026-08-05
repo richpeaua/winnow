@@ -2,10 +2,10 @@
 // zod-validated, fail-fast. Transport-from-config wiring (stdio/http) is the
 // one marked stub in this skeleton — see buildUpstreams.
 import { z } from "zod";
-import type { UpstreamConnection } from "./upstream/types.ts";
-import { StdioUpstream } from "./upstream/stdio.ts";
-import { HttpUpstream } from "./upstream/http.ts";
-import type { ResultFilterPolicy } from "./types.ts";
+import type { UpstreamConnection } from "./upstream/types.js";
+import { StdioUpstream } from "./upstream/stdio.js";
+import { HttpUpstream } from "./upstream/http.js";
+import type { ResultFilterPolicy } from "./types.js";
 
 const FilterPolicy = z.object({
   project: z.string().optional(),

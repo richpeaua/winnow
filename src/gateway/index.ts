@@ -3,10 +3,10 @@
 import http from "node:http";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { Winnow } from "../client.ts";
-import { createGateway } from "./server.ts";
+import type { Winnow } from "../client.js";
+import { createGateway } from "./server.js";
 
-export { createGateway } from "./server.ts";
+export { createGateway } from "./server.js";
 
 /** Serve the gateway over stdio (one connection on this process's stdin/stdout).
  *  Note: keep stdout clean — MCP stdio is JSON-RPC only; log to stderr. */

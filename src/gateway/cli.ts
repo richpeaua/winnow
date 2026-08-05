@@ -4,8 +4,8 @@
 // dev:  npx tsx src/gateway/cli.ts --config winnow.config.json [--http --port 8080]
 // prod: mcp-winnow gateway --config winnow.config.json   (after P3 packaging)
 import fs from "node:fs";
-import { Winnow } from "../client.ts";
-import { serveStdio, serveHttp } from "./index.ts";
+import { Winnow } from "../client.js";
+import { serveStdio, serveHttp } from "./index.js";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);

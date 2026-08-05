@@ -6,8 +6,8 @@
 // Capability-injected: the sandbox reaches only __mcpCall + a return channel;
 // no ambient fs/net/env/timers. See docs/DESIGN.md §6.
 import { Worker } from "node:worker_threads";
-import { filterResult, approxTokens } from "./filter.ts";
-import type { FilteredResult, TokenCounter } from "./types.ts";
+import { filterResult, approxTokens } from "./filter.js";
+import type { FilteredResult, TokenCounter } from "./types.js";
 
 export interface ExecOpts {
   timeoutMs?: number;
@@ -44,7 +44,9 @@ export async function runSandbox(
   opts: ExecOpts = {},
   count: TokenCounter = approxTokens
 ): Promise<FilteredResult> {
-  const workerUrl = new URL("./sandbox-worker.ts", import.meta.url);
+  // Resolve the worker next to this module: .ts under tsx (dev), .js from dist (prod).
+  const ext = import.meta.url.endsWith(".ts") ? ".ts" : ".js";
+  const workerUrl = new URL(`./sandbox-worker${ext}`, import.meta.url);
   const sab = new SharedArrayBuffer(16 + BRIDGE_BYTES);
   const ctrl = new Int32Array(sab, 0, 4); // [0]=flag, [1]=length
   const data = new Uint8Array(sab, 16);

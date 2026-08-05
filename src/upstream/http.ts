@@ -1,8 +1,8 @@
 // Real Streamable-HTTP upstream (spec 2026-07-28 current transport). Lazy connect.
 // Headless auth: a pre-provisioned bearer token via header (browserless).
 // Seeded-OAuth / client_credentials grants are noted for follow-up.
-import type { ToolDef, ToolResult } from "../types.ts";
-import type { UpstreamConnection } from "./types.ts";
+import type { ToolDef, ToolResult } from "../types.js";
+import type { UpstreamConnection } from "./types.js";
 
 export interface HttpUpstreamConfig {
   url: string;

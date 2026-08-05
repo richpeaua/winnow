@@ -1,4 +1,4 @@
-import type { ToolDef, ToolResult } from "../types.ts";
+import type { ToolDef, ToolResult } from "../types.js";
 
 /**
  * A connection to one upstream MCP server. Implementations connect lazily
