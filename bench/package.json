@@ -6,7 +6,8 @@
   "description": "Validation benchmark for the mcp-client context-bloat design spec",
   "scripts": {
     "bench": "node bench.js",
-    "bench:real": "node --expose-gc real-servers.mjs"
+    "bench:real": "node --expose-gc real-servers.mjs",
+    "bench:public": "node public-mcp.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
