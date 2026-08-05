@@ -3,6 +3,9 @@
 // one marked stub in this skeleton — see buildUpstreams.
 import { z } from "zod";
 import type { UpstreamConnection } from "./upstream/types.ts";
+import { StdioUpstream } from "./upstream/stdio.ts";
+import { HttpUpstream } from "./upstream/http.ts";
+import type { ResultFilterPolicy } from "./types.ts";
 
 const FilterPolicy = z.object({
   project: z.string().optional(),
@@ -65,14 +68,25 @@ export function resolveConfig(raw: unknown): McpClientConfig {
   return McpClientConfigSchema.parse(interpolated);
 }
 
-/**
- * STUB: build real upstream connections from config transports.
- * The validated core runs on injected upstreams (see McpClient/MockUpstream);
- * real stdio/http wiring via @modelcontextprotocol/sdk lands here next.
- */
-export function buildUpstreams(_config: McpClientConfig): UpstreamConnection[] {
-  throw new Error(
-    "buildUpstreams: real stdio/http transport wiring not implemented in the skeleton. " +
-    "Inject upstreams directly (new McpClient({ upstreams })) or add a stdio adapter in src/upstream/."
-  );
+/** Build real upstream connections (stdio / Streamable-HTTP) from validated config. */
+export function buildUpstreams(config: McpClientConfig): UpstreamConnection[] {
+  return Object.entries(config.servers).map(([name, s]) => {
+    if (s.transport === "stdio") {
+      return new StdioUpstream(name, { command: s.command, args: s.args, env: s.env });
+    }
+    const bearer =
+      s.auth?.type === "bearer" ? s.auth.token
+      : s.auth?.type === "oauth" ? s.auth.tokens
+      : undefined; // client_credentials grant: follow-up (see docs/DESIGN.md §8)
+    return new HttpUpstream(name, { url: s.url, headers: s.headers, bearer });
+  });
+}
+
+/** Extract per-tool result-filter policies (keyed by tool id) from config. */
+export function policiesFromConfig(config: McpClientConfig): Record<string, ResultFilterPolicy> {
+  const out: Record<string, ResultFilterPolicy> = {};
+  for (const [server, s] of Object.entries(config.servers)) {
+    for (const [tool, policy] of Object.entries(s.tools ?? {})) out[`${server}:${tool}`] = policy;
+  }
+  return out;
 }
