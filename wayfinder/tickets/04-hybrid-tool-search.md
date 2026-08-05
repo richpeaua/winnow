@@ -31,3 +31,10 @@ Output: the ranking design + the degradation contract.
 **Result shape:** `searchTools(query)` returns top-k (default 8, configurable) minimal entries `{id,name,summary,server}` **plus a normalized `score` (0-1)** so the agent can gauge confidence and choose loadTool vs re-search — cutting wasted schema loads, themselves a bloat source. Never returns full schemas (that would defeat def-bloat).
 
 **Index lifecycle:** built and persisted with the C1 catalog (cache default-on); patched incrementally on `list_changed`. Lexical index always built; vector index only when an embedder is active.
+
+## Validation refinement (from `bench/recall.js`)
+
+Measured recall@8: hybrid **100%**, lexical-only **88%** (80% on paraphrases). Lexical-only is a real regression, not a free fallback — a miss makes the agent list everything, erasing the def-bloat win. Refinements (in [docs/DESIGN.md](../../docs/DESIGN.md) §4/§15):
+1. **Pre-provision the embedding model for headless** (one-time ~23MB cache); lexical-only is last-resort, not the expected headless path.
+2. Per-tool **`aliases`/keywords** field to lift lexical recall on paraphrases.
+3. Low-`score` **`list_tools(server)` escape hatch** so a miss degrades to browsing, never a silent blowout.
