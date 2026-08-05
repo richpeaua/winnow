@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      # Omit optional deps (@huggingface/transformers) — the test suite runs
+      # lexical-only and never imports it; keeps CI fast and robust.
+      - run: npm ci --omit=optional
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

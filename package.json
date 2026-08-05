@@ -5,6 +5,21 @@
   "type": "module",
   "description": "Winnow — an embedded TypeScript SDK that lets an agent use many MCP servers without context bloat.",
   "license": "MIT",
+  "author": "richpeaua",
+  "homepage": "https://github.com/richpeaua/winnow#readme",
+  "repository": { "type": "git", "url": "git+https://github.com/richpeaua/winnow.git" },
+  "bugs": { "url": "https://github.com/richpeaua/winnow/issues" },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "context-bloat",
+    "token-efficiency",
+    "agent",
+    "llm",
+    "tools",
+    "sdk",
+    "gateway"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

@@ -2,6 +2,11 @@
 
 > Keep the grain, drop the bloat.
 
+[![CI](https://github.com/richpeaua/winnow/actions/workflows/ci.yml/badge.svg)](https://github.com/richpeaua/winnow/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
+[![MCP](https://img.shields.io/badge/MCP-client-blue.svg)](https://modelcontextprotocol.io)
+
 **Winnow** (`mcp-winnow`) is an embedded TypeScript SDK that lets an agent use many MCP servers **without context bloat** — it winnows away both tool-definition bloat and tool-result bloat, and works the same attended or headless.
 
 Full design + decision log: [`docs/DESIGN.md`](docs/DESIGN.md). Validation numbers: [`bench/RESULTS.md`](bench/RESULTS.md).
@@ -91,6 +96,13 @@ bench/      validation benchmarks (token reduction + search recall)
 docs/       DESIGN.md — the build-ready spec
 wayfinder/  the decision map this project was designed through
 ```
+
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup and workflow, and please follow the [Code of Conduct](CODE_OF_CONDUCT.md). New to the code? [`docs/DESIGN.md`](docs/DESIGN.md) explains every decision, and `wayfinder/` records how they were reached.
+
+- 🐛 Bugs & ✨ features: open an [issue](https://github.com/richpeaua/winnow/issues)
+- 🔒 Security: see [SECURITY.md](SECURITY.md) — please report privately
 
 ## License
 
