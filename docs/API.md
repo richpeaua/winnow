@@ -125,11 +125,14 @@ interface Embedder       { embed(texts: string[]): Promise<number[][]> }
 ## Upstreams & auth (lower-level)
 
 ```ts
-import { StdioUpstream, HttpUpstream, MockUpstream,
+import { StdioUpstream, HttpUpstream, MockUpstream, PooledUpstream,
          staticBearer, preProvisionedOAuth, clientCredentials } from "mcp-winnow";
 
 new StdioUpstream("github", { command: "npx", args: ["-y", "@modelcontextprotocol/server-github"], env: {...} });
 new HttpUpstream("api", { url: "https://.../mcp", getBearer: clientCredentials({ clientId, clientSecret, tokenUrl }) });
+
+// Fan calls across N least-busy replica connections (for a single-threaded upstream under load):
+new PooledUpstream("github", () => new StdioUpstream("github", { command: "npx", args: ["-y", "@modelcontextprotocol/server-github"] }), 4);
 ```
 
 ## Gateway

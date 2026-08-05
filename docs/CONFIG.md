@@ -85,6 +85,7 @@ A server is either **stdio** or **http** (discriminated by `transport`).
 | `args` | `string[]` | optional |
 | `env` | `Record<string,string>` | optional — passed to the subprocess (use `${VAR}` for secrets) |
 | `tools` | `Record<string, FilterPolicy>` | optional — see [Result-filter policies](#result-filter-policies) |
+| `poolSize` | `int > 0` | optional (default 1) — replica connections for fan-in; see [Connection pooling](#connection-pooling) |
 
 ### http (Streamable HTTP)
 
@@ -105,6 +106,7 @@ A server is either **stdio** or **http** (discriminated by `transport`).
 | `headers` | `Record<string,string>` | optional static headers |
 | `auth` | `AuthConfig` | optional — see below |
 | `tools` | `Record<string, FilterPolicy>` | optional |
+| `poolSize` | `int > 0` | optional (default 1) — replica connections for fan-in; see [Connection pooling](#connection-pooling) |
 
 ## Auth (http only)
 
@@ -154,6 +156,18 @@ Under a server's `tools`, keyed by the tool's short name, you set the static fil
 | `paginate` | `boolean` | Reserved for pagination handling. |
 
 An agent can override `project`/`maxTokens` per call, but the cap is a hard ceiling it can only lower.
+
+## Connection pooling
+
+At scale the shape is fan-in: many agents → one shared Winnow → **one** connection per upstream. JSON-RPC multiplexes by id so the client never serializes, but a **single-threaded upstream** (many MCP servers are) processes calls sequentially, so the fleet queues behind one server instance.
+
+Set `poolSize` on a server to keep N replica connections and dispatch each call to the **least-busy** one — giving a single-threaded server N parallel workers:
+
+```jsonc
+"github": { "transport": "stdio", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"], "poolSize": 4 }
+```
+
+Replicas connect **lazily** and are reused: idle cost stays at one connection; extras spin up only under concurrency. `poolSize: 1` (the default) is the single-connection behavior with zero overhead. Pooling doesn't change the cache key, so raising it never invalidates the catalog cache.
 
 ## Multi-tenant auth passthrough (http gateway)
 
