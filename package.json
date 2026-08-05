@@ -25,7 +25,7 @@
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
     "./gateway": { "types": "./dist/gateway/index.d.ts", "import": "./dist/gateway/index.js" }
   },
-  "bin": { "mcp-winnow": "./dist/gateway/cli.js" },
+  "bin": { "mcp-winnow": "dist/gateway/cli.js" },
   "files": ["dist", "docs", "README.md", "CHANGELOG.md", "LICENSE"],
   "engines": { "node": ">=20" },
   "scripts": {
