@@ -6,6 +6,7 @@ export { SearchIndex } from "./search.ts";
 export { filterResult, DEFAULT_MAX_TOKENS, approxTokens } from "./filter.ts";
 export { META_TOOLS, dispatchMetaTool, type MetaToolDef } from "./adapter.ts";
 export { McpClientConfigSchema, resolveConfig, interpolateEnv, buildUpstreams, policiesFromConfig, type McpClientConfig } from "./config.ts";
+export { createGateway, serveStdio, serveHttp, type HttpGatewayOptions } from "./gateway/index.ts";
 export { MockUpstream, type MockTool } from "./upstream/mock.ts";
 export { StdioUpstream, type StdioUpstreamConfig } from "./upstream/stdio.ts";
 export { HttpUpstream, type HttpUpstreamConfig } from "./upstream/http.ts";

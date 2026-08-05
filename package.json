@@ -10,7 +10,9 @@
   "scripts": {
     "demo": "tsx examples/demo.ts",
     "test": "tsx --test test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gateway": "tsx src/gateway/cli.ts",
+    "gateway:demo": "tsx examples/gateway-demo.ts"
   },
   "dependencies": {
     "@jmespath-community/jmespath": "^1.1.3",

@@ -49,8 +49,22 @@ const res  = await client.call(hits[0].id, { state: "open" }, {
 | Real Streamable-HTTP transport + bearer auth | ✅ implemented + verified live against a local server, incl. 401 on bad token (`examples/real-http.ts`) |
 | `Winnow.fromConfig()` | ✅ implemented |
 | Code-exec sandbox: sync QuickJS-WASM in a worker + Atomics bridge (X1) | ✅ implemented — `npx tsx examples/exec-demo.ts` (30 fat PRs → 117 tok, 74×) |
+| Gateway: run Winnow as an MCP server, stdio + HTTP (P4) | ✅ implemented — `npx tsx examples/gateway-demo.ts` (host → gateway → real upstream) |
 
-Every part of the spec is now implemented. The core drives real MCP servers over stdio (`npx tsx examples/real-stdio.ts`), and `exec` composes many tool calls in a capability-injected sandbox (no ambient `fs`/`net`/`process`), returning only the small computed result. Nothing is stubbed.
+Every part of the spec is implemented, plus the gateway that makes it installable into any MCP host.
+
+## Install into any MCP host (gateway)
+
+Winnow can run as an MCP **server** exposing just the 4 meta-tools — so a host connects to ONE server and sees FOUR tools while Winnow hides N upstream servers behind search/load/call/run_code. `run_code` runs server-side in Winnow's sandbox, so hosts that can't `import` TS still get the full composition win.
+
+```jsonc
+// e.g. claude_desktop_config.json / .cursor/mcp.json
+"mcpServers": {
+  "winnow": { "command": "npx", "args": ["-y", "mcp-winnow", "gateway", "--config", "winnow.config.json"] }
+}
+```
+
+`winnow.config.json` lists the upstream servers to aggregate (same schema as `Winnow.fromConfig`). Remote/hosted instead: `serveHttp(winnow, { port, token })` (Streamable-HTTP + bearer). The `npx` bin lands with packaging (P3); today run it via `npx tsx src/gateway/cli.ts --config winnow.config.json`.
 
 ## Layout
 
