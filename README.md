@@ -67,6 +67,17 @@ Winnow can run as an MCP **server** exposing just the 4 meta-tools — so a host
 
 `winnow.config.json` lists the upstream servers to aggregate (same schema as `Winnow.fromConfig`). Remote/hosted instead: `serveHttp(winnow, { port, token })` (Streamable-HTTP + bearer). Build the bin with `npm run build`; from source run `npx tsx src/gateway/cli.ts --config winnow.config.json`.
 
+### Claude Code plugin
+
+Winnow also ships as a Claude Code plugin (`plugin/`, listed in `.claude-plugin/marketplace.json`):
+
+```
+/plugin marketplace add richpeaua/winnow
+/plugin install winnow@winnow
+```
+
+Then drop a `winnow.config.json` in your project root. (Requires `mcp-winnow` published to npm, or a local `npm link` — see `plugin/README.md`.)
+
 ## Layout
 
 ```

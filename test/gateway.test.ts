@@ -17,6 +17,22 @@ async function connectHost() {
   return { host, winnow };
 }
 
+test("gateway: exposes the 4 meta-tools even with zero upstreams (resilient first run)", async () => {
+  const winnow = new Winnow({ upstreams: [] });
+  await winnow.init();
+  const gateway = createGateway(winnow);
+  const [clientT, serverT] = InMemoryTransport.createLinkedPair();
+  await gateway.connect(serverT);
+  const host = new Client({ name: "empty-host", version: "1.0.0" }, { capabilities: {} });
+  await host.connect(clientT);
+  const { tools } = await host.listTools();
+  assert.equal(tools.length, 4);
+  const hits: any = await host.callTool({ name: "search_tools", arguments: { query: "anything" } });
+  assert.deepEqual(hits.structuredContent.hits, []); // no upstreams -> empty, but the server is up
+  await host.close();
+  await winnow.close();
+});
+
 test("gateway: exposes exactly the 4 meta-tools", async () => {
   const { host, winnow } = await connectHost();
   const { tools } = await host.listTools();

@@ -1,0 +1,16 @@
+{
+  "//": "Copy to your project root as winnow.config.json and list the MCP servers you want Winnow to aggregate. Secrets go in env vars, referenced as ${VAR} (never inline).",
+  "servers": {
+    "github": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}" }
+    },
+    "filesystem": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "${CLAUDE_PROJECT_DIR}"]
+    }
+  }
+}

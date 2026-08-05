@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "winnow": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-winnow",
+        "gateway",
+        "--config",
+        "${CLAUDE_PROJECT_DIR}/winnow.config.json"
+      ]
+    }
+  }
+}

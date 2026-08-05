@@ -19,7 +19,15 @@ if (!configPath) {
   process.exit(2);
 }
 
-const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
+// Resilient first-run: if the config file isn't there yet, start with no
+// upstreams (the 4 meta-tools still appear) rather than crashing the server.
+let raw: unknown;
+try {
+  raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
+} catch {
+  process.stderr.write(`[winnow-gateway] no config at ${configPath}; starting with no upstream servers. Create it to aggregate MCP servers.\n`);
+  raw = { servers: {} };
+}
 const winnow = Winnow.fromConfig(raw);
 const info = await winnow.init();
 process.stderr.write(`[winnow-gateway] ${info.tools} tools from ${info.tools ? "config" : "?"}, hybrid=${info.hybrid}, skipped=[${info.skipped}]\n`);

@@ -42,11 +42,13 @@ A **locked, build-ready design spec + decision log** for `mcp-client`: an embedd
 Open:
 - [Persistent cache + list_changed subscriptions](tickets/13-persistent-cache-listchanged.md) — on-disk cache keyed by version/`ttlMs`; live incremental index updates. Catalog is in-memory per process today.
 - [HTTP auth — pre-provisioned OAuth + client_credentials grants](tickets/14-http-oauth-grants.md) — bearer is live-verified; the other two browserless grants are config-typed but unbuilt.
-- [Claude Code plugin package](tickets/17-claude-code-plugin.md) — bundle the gateway as an installable Claude Code plugin. **Now unblocked** (gateway + bin done).
+
+Go-decisions (yours, not build work): publish `mcp-winnow` to npm; choose a LICENSE. The Claude Code plugin's live `/plugin install` waits on the npm publish (or a local `npm link`).
 
 Done:
 - ✅ [Gateway adapter — Winnow as an MCP server (stdio + HTTP)](tickets/16-gateway-mcp-server.md) — the "install as a plugin" path; 4 meta-tools, `run_code` server-side = full power. Verified live + unit (PR #2).
 - ✅ [Package for publish](tickets/15-package-for-publish.md) — `dist` build + types + `mcp-winnow` bin; verified via `npm pack` → clean install → bin runs.
+- ✅ [Claude Code plugin package](tickets/17-claude-code-plugin.md) — MCP-only plugin + marketplace; resilient empty-config; JSON validated + unit-tested. Live `/plugin install` pends the npm publish (docs cover the local-link override).
 
 ## Not yet specified
 
