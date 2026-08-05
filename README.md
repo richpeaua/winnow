@@ -90,3 +90,7 @@ bench/      validation benchmarks (token reduction + search recall)
 docs/       DESIGN.md — the build-ready spec
 wayfinder/  the decision map this project was designed through
 ```
+
+## License
+
+MIT © richpeaua — see [LICENSE](LICENSE).
