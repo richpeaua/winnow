@@ -19,6 +19,16 @@ test("filter: cap is a hard ceiling the agent can only lower", () => {
   assert.ok((out.note as any)?._truncated?.dropped > 0, "annotates dropped count");
 });
 
+test("filter: text-blob cap honors an injected tokenizer (not the 4char/token approximation)", () => {
+  // A dense text result (JSON-ish string) where real tokens/char >> 1/4.
+  const blob = { content: [{ type: "text", text: JSON.stringify(Array.from({ length: 2000 }, (_, i) => ({ k: i }))) }] };
+  // A "real" tokenizer that is ~2x denser than the 4char/token default.
+  const denseCounter = (t: string) => Math.ceil(t.length / 2);
+  const out = filterResult(blob, { maxTokens: 300 }, denseCounter);
+  assert.ok(out.truncated, "should truncate");
+  assert.ok(denseCounter(JSON.stringify(out.output)) <= 300, `must honor the injected counter's budget (got ${out.tokens})`);
+});
+
 test("filter: base64 image blocks are stubbed, not dumped", () => {
   const raw = { content: [{ type: "image", mimeType: "image/png", data: "A".repeat(10000) }] };
   const out = filterResult(raw);
