@@ -13,7 +13,7 @@ import { Winnow } from "mcp-winnow";
 | Option | Type | Default | Notes |
 |---|---|---|---|
 | `upstreams` | `UpstreamConnection[]` | — (required) | The servers to aggregate. Use `StdioUpstream` / `HttpUpstream` / `MockUpstream`, or build from config with `Winnow.fromConfig`. |
-| `embedder` | `Embedder` | — | Provide to enable hybrid (semantic) search. Absent → lexical-only. |
+| `embedder` | `Embedder` | — | Provide to enable hybrid (semantic) search. Absent → lexical-only. Use `localEmbedder()` for a worker-thread local model (see [USAGE.md](USAGE.md#search--headless-embeddings)). |
 | `tokenCounter` | `(text: string) => number` | ~chars/4 | Inject a real tokenizer for exact caps. |
 | `defaultMaxTokens` | `number` | `2000` | Global hard cap on any single result (F1). |
 | `topK` | `number` | `8` | Default number of search hits. |

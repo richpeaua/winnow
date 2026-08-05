@@ -43,17 +43,25 @@ export class SearchIndex {
     const res = await oramaSearch(this.db, { term: query, limit: this.tools.length, threshold: 1 });
     const lexRank: string[] = res.hits.map((h: any) => h.document.id);
 
+    const lexicalOrder = (): Array<{ id: string; score: number }> => {
+      const max = res.hits[0]?.score ?? 1;
+      return res.hits.map((h: any) => ({ id: h.document.id, score: max ? h.score / max : 0 }));
+    };
+
     let order: Array<{ id: string; score: number }>;
     if (this.vectors && this.embedder) {
-      const [qv] = await this.embedder.embed([query]);
-      const semRank = this.tools
-        .map((t, i) => ({ id: t.id, s: cosine(qv!, this.vectors![i]!) }))
-        .sort((a, b) => b.s - a.s)
-        .map((r) => r.id);
-      order = rrf(lexRank, semRank);
+      try {
+        const [qv] = await this.embedder.embed([query]);
+        const semRank = this.tools
+          .map((t, i) => ({ id: t.id, s: cosine(qv!, this.vectors![i]!) }))
+          .sort((a, b) => b.s - a.s)
+          .map((r) => r.id);
+        order = rrf(lexRank, semRank);
+      } catch {
+        order = lexicalOrder(); // embedder died at query time -> lexical for this call
+      }
     } else {
-      const max = res.hits[0]?.score ?? 1;
-      order = res.hits.map((h: any) => ({ id: h.document.id, score: max ? h.score / max : 0 }));
+      order = lexicalOrder();
     }
 
     const byId = new Map(this.tools.map((t) => [t.id, t]));
