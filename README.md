@@ -44,7 +44,7 @@ const res  = await client.call(hits[0].id, { state: "open" }, {
 | Public `McpClient` facade + 4 meta-tool adapter (A2) | ✅ implemented |
 | Pluggable upstream + in-memory mock | ✅ implemented |
 | Real stdio transport (`buildUpstreams`) | ✅ implemented — verified against the reference `server-everything` (see `examples/real-stdio.ts`) |
-| Real Streamable-HTTP transport + bearer auth | ✅ implemented (not yet live-tested) |
+| Real Streamable-HTTP transport + bearer auth | ✅ implemented + verified live against a local server, incl. 401 on bad token (`examples/real-http.ts`) |
 | `McpClient.fromConfig()` | ✅ implemented |
 | Code-exec sandbox: sync QuickJS-WASM in a worker + Atomics bridge (X1) | ✅ implemented — `npx tsx examples/exec-demo.ts` (30 fat PRs → 117 tok, 74×) |
 
