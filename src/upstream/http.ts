@@ -17,6 +17,10 @@ export class HttpUpstream implements UpstreamConnection {
 
   constructor(public readonly server: string, private cfg: HttpUpstreamConfig) {}
 
+  get identity(): string {
+    return `http:${this.cfg.url}`;
+  }
+
   private async connect(): Promise<any> {
     if (this.client) return this.client;
     if (this.connecting) return this.connecting;

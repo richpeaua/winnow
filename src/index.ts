@@ -1,7 +1,8 @@
 export { Winnow, type McpClientOptions } from "./client.js";
 // Back-compat alias (the class was formerly `McpClient`).
 export { Winnow as McpClient } from "./client.js";
-export { Catalog } from "./catalog.js";
+export { Catalog, type CatalogBuildOptions } from "./catalog.js";
+export { CatalogCache, defaultCacheDir, DEFAULT_TTL_MS, type CacheEntry } from "./cache.js";
 export { SearchIndex } from "./search.js";
 export { filterResult, DEFAULT_MAX_TOKENS, approxTokens } from "./filter.js";
 export { META_TOOLS, dispatchMetaTool, type MetaToolDef } from "./adapter.js";

@@ -16,6 +16,10 @@ export class StdioUpstream implements UpstreamConnection {
 
   constructor(public readonly server: string, private cfg: StdioUpstreamConfig) {}
 
+  get identity(): string {
+    return `stdio:${this.cfg.command} ${(this.cfg.args ?? []).join(" ")}`;
+  }
+
   private async connect(): Promise<any> {
     if (this.client) return this.client;
     if (this.connecting) return this.connecting;

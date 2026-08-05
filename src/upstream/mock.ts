@@ -14,6 +14,11 @@ export interface MockTool {
 export class MockUpstream implements UpstreamConnection {
   constructor(public readonly server: string, private tools: MockTool[]) {}
 
+  get identity(): string { return `mock:${this.server}`; }
+
+  /** Test helper: swap this server's tools (simulates a server whose set changed). */
+  setTools(tools: MockTool[]): void { this.tools = tools; }
+
   async listTools(): Promise<ToolDef[]> {
     return this.tools.map((t) => ({
       id: `${this.server}:${t.name}`,

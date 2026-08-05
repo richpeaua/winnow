@@ -40,8 +40,8 @@ A **locked, build-ready design spec + decision log** for `mcp-client`: an embedd
 <!-- The destination (build-ready spec) was reached AND implemented on master; SDK is feature-complete and both transports are live-verified. These are follow-on build tickets beyond the original destination. -->
 
 Open:
-- [Persistent cache + list_changed subscriptions](tickets/13-persistent-cache-listchanged.md) — on-disk cache keyed by version/`ttlMs`; live incremental index updates. Catalog is in-memory per process today.
 - [HTTP auth — pre-provisioned OAuth + client_credentials grants](tickets/14-http-oauth-grants.md) — bearer is live-verified; the other two browserless grants are config-typed but unbuilt.
+- [Live tools/list_changed subscriptions + ttl hints](tickets/18-listchanged-subscriptions.md) — split from P1; auto-update the catalog on a live server while running (manual `refresh()` exists today).
 
 Go-decisions (yours, not build work): publish `mcp-winnow` to npm; choose a LICENSE. The Claude Code plugin's live `/plugin install` waits on the npm publish (or a local `npm link`).
 
@@ -49,6 +49,7 @@ Done:
 - ✅ [Gateway adapter — Winnow as an MCP server (stdio + HTTP)](tickets/16-gateway-mcp-server.md) — the "install as a plugin" path; 4 meta-tools, `run_code` server-side = full power. Verified live + unit (PR #2).
 - ✅ [Package for publish](tickets/15-package-for-publish.md) — `dist` build + types + `mcp-winnow` bin; verified via `npm pack` → clean install → bin runs.
 - ✅ [Claude Code plugin package](tickets/17-claude-code-plugin.md) — MCP-only plugin + marketplace; resilient empty-config; JSON validated + unit-tested. Live `/plugin install` pends the npm publish (docs cover the local-link override).
+- ✅ [Persistent catalog cache](tickets/13-persistent-cache-listchanged.md) — disk cache keyed by upstream identity; zero-connection warm start; degrade-to-stale; `refresh()` + `'toolsChanged'`. (Live `list_changed` split to P6.)
 
 ## Not yet specified
 

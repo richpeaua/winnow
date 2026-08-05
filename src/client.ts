@@ -20,6 +20,12 @@ export interface McpClientOptions {
   topK?: number;
   /** Static per-tool result-filter policies, keyed by tool id. */
   policies?: Record<string, ResultFilterPolicy>;
+  /** Persist the catalog/index to disk (default true). false = ephemeral. */
+  cache?: boolean;
+  /** Cache directory (default ~/.cache/winnow). */
+  cacheDir?: string;
+  /** Cache TTL in ms (default 1h); an entry older than this is re-listed. */
+  cacheTtlMs?: number;
 }
 
 export class Winnow {
@@ -45,11 +51,25 @@ export class Winnow {
     });
   }
 
-  /** Build the catalog + search index (or load cache, in the full impl). */
-  async init(): Promise<{ tools: number; hybrid: boolean; skipped: string[] }> {
-    const { skipped } = await this.catalog.build(this.opts.upstreams);
+  private get cacheOpts() {
+    return { cache: this.opts.cache, cacheDir: this.opts.cacheDir, ttlMs: this.opts.cacheTtlMs };
+  }
+
+  /** Build the catalog + search index. On a full (fresh) cache hit, makes zero
+   *  upstream connections. `fromCache` lists the servers served from disk. */
+  async init(): Promise<{ tools: number; hybrid: boolean; skipped: string[]; fromCache: string[] }> {
+    const { skipped, fromCache } = await this.catalog.build(this.opts.upstreams, this.cacheOpts);
     this.ready = true;
-    return { tools: this.catalog.size, hybrid: this.catalog.hybrid, skipped };
+    return { tools: this.catalog.size, hybrid: this.catalog.hybrid, skipped, fromCache };
+  }
+
+  /** Re-list one server (or all), patch the catalog + index, refresh the cache,
+   *  and fire 'toolsChanged'. Use to pick up a server whose tool set changed. */
+  async refresh(server?: string): Promise<void> {
+    this.assertReady();
+    const targets = server ? [this.byServer.get(server)].filter(Boolean) as UpstreamConnection[] : this.opts.upstreams;
+    for (const u of targets) await this.catalog.refresh(u, this.cacheOpts);
+    for (const cb of this.listeners) cb();
   }
 
   private assertReady() { if (!this.ready) throw new Error("call init() before using the client"); }
