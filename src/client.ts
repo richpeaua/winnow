@@ -39,6 +39,11 @@ export class Winnow {
   private listeners = new Set<() => void>();
   private unsubscribes: Array<() => void> = [];
   private pool?: SandboxPool;
+  // Single-flight refresh: at most one drain runs; concurrent requests coalesce
+  // into a per-server dirty set (or a full-refresh flag) drained sequentially.
+  private dirtyServers = new Set<string>();
+  private refreshAll = false;
+  private refreshRunning: Promise<void> | null = null;
 
   constructor(private opts: McpClientOptions) {
     this.catalog = new Catalog(opts.embedder);
@@ -71,7 +76,15 @@ export class Winnow {
     if (this.opts.watch) {
       for (const u of this.opts.upstreams) {
         if (!u.watch) continue;
-        const unsub = await u.watch(() => this.refresh(u.server));
+        // Upstreams fire this callback fire-and-forget (`void onChanged()`), so a
+        // rejected watch-driven refresh would surface as an unhandled rejection.
+        // Return the .catch()-wrapped promise: the attached handler swallows+logs
+        // the rejection (the single-flight worker still resets, so a later refresh
+        // recovers), while a caller that DOES await the callback (e.g. the mock)
+        // still observes completion. Manual refresh() callers see the rejection.
+        const unsub = await u.watch(() =>
+          this.refresh(u.server).catch((e) =>
+            console.warn(`[mcp-winnow] watch refresh for "${u.server}" failed: ${String(e).split("\n")[0]}`)));
         this.unsubscribes.push(unsub);
         watching.push(u.server);
       }
@@ -83,9 +96,41 @@ export class Winnow {
    *  and fire 'toolsChanged'. Use to pick up a server whose tool set changed. */
   async refresh(server?: string): Promise<void> {
     this.assertReady();
-    const targets = server ? [this.byServer.get(server)].filter(Boolean) as UpstreamConnection[] : this.opts.upstreams;
-    for (const u of targets) await this.catalog.refresh(u, this.cacheOpts);
-    for (const cb of this.listeners) cb();
+    if (server) this.dirtyServers.add(server); else this.refreshAll = true;
+    return this.drainRefresh();
+  }
+
+  /** Single-flight worker: serializes catalog.refresh so no two SearchIndex.build
+   *  runs interleave, and coalesces bursts. A request made mid-drain lands in the
+   *  dirty set and is picked up by the while-loop's next iteration (no lost update).
+   *  On a throw the drain rejects (joined callers all see it) but refreshRunning is
+   *  reset in finally, so a later refresh starts a fresh drain — never wedged. A
+   *  dirty-set entry left unprocessed by a mid-drain throw is intentionally dropped
+   *  (best-effort; the next explicit refresh re-lists it). */
+  private drainRefresh(): Promise<void> {
+    if (this.refreshRunning) return this.refreshRunning; // join the in-flight drain
+    this.refreshRunning = (async () => {
+      try {
+        while (this.refreshAll || this.dirtyServers.size) {
+          if (this.refreshAll) {
+            this.refreshAll = false;
+            this.dirtyServers.clear();
+            for (const u of this.opts.upstreams) await this.catalog.refresh(u, this.cacheOpts);
+          } else {
+            const servers = [...this.dirtyServers];
+            this.dirtyServers.clear();
+            for (const s of servers) {
+              const u = this.byServer.get(s);
+              if (u) await this.catalog.refresh(u, this.cacheOpts);
+            }
+          }
+          for (const cb of this.listeners) cb(); // fire toolsChanged after each applied batch
+        }
+      } finally {
+        this.refreshRunning = null;
+      }
+    })();
+    return this.refreshRunning;
   }
 
   private assertReady() { if (!this.ready) throw new Error("call init() before using the client"); }
