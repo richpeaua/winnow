@@ -3,6 +3,7 @@
 import type { CatalogEntry, Embedder, SearchHit, ToolDef } from "./types.js";
 import { SearchIndex } from "./search.js";
 import { CatalogCache, DEFAULT_TTL_MS } from "./cache.js";
+import { EmbeddingCache } from "./embedding-cache.js";
 import type { UpstreamConnection } from "./upstream/types.js";
 
 export interface CatalogBuildOptions {
@@ -31,6 +32,7 @@ export class Catalog {
   async build(upstreams: UpstreamConnection[], opts: CatalogBuildOptions = {}): Promise<{ skipped: string[]; fromCache: string[] }> {
     const useCache = opts.cache !== false;
     const cache = useCache ? new CatalogCache(opts.cacheDir) : null;
+    const embCache = useCache ? new EmbeddingCache(opts.cacheDir) : null;
     const ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
     const now = opts.now ?? Date.now;
     const skipped: string[] = [];
@@ -65,7 +67,7 @@ export class Catalog {
         }
       }
     }
-    await this.index.build([...this.defs.values()]);
+    await this.index.build([...this.defs.values()], embCache);
     return { skipped, fromCache };
   }
 
@@ -74,10 +76,13 @@ export class Catalog {
     const tools = await upstream.listTools();
     for (const [id, def] of this.defs) if (def.server === upstream.server) this.defs.delete(id);
     for (const t of tools) this.defs.set(t.id, t);
+    const embCache = opts.cache !== false ? new EmbeddingCache(opts.cacheDir) : null;
     if (opts.cache !== false && upstream.identity) {
       new CatalogCache(opts.cacheDir).write(upstream.identity, upstream.server, tools, (opts.now ?? Date.now)());
     }
-    await this.index.build([...this.defs.values()]);
+    // Reindex over all defs; the sidecar keeps unchanged servers as hits, so only
+    // this server's (new/changed) tools are re-embedded.
+    await this.index.build([...this.defs.values()], embCache);
   }
 
   search(query: string, topK = 8): Promise<SearchHit[]> {

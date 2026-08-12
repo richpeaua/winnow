@@ -5,6 +5,7 @@
 // and search degrades to lexical-only. Pass to `new Winnow({ embedder })`.
 import { Worker } from "node:worker_threads";
 import type { Embedder } from "./types.js";
+import { fingerprintFor } from "./embedding-cache.js";
 
 export interface LocalEmbedderOptions {
   /** HF model id (Transformers.js). Default "Xenova/all-MiniLM-L6-v2". */
@@ -34,7 +35,8 @@ export function localEmbedder(opts: LocalEmbedderOptions = {}): ClosableEmbedder
 
   let worker: Worker | null = null;
   let seq = 0;
-  const pending = new Map<number, { resolve: (v: number[][]) => void; reject: (e: Error) => void }>();
+  interface FlatVectors { data: Float32Array; dim: number; }
+  const pending = new Map<number, { resolve: (v: FlatVectors) => void; reject: (e: Error) => void }>();
 
   const rejectAll = (err: Error) => { for (const p of pending.values()) p.reject(err); pending.clear(); };
 
@@ -45,7 +47,7 @@ export function localEmbedder(opts: LocalEmbedderOptions = {}): ClosableEmbedder
       const p = pending.get(msg?.id);
       if (!p) return;
       pending.delete(msg.id);
-      if (msg.type === "result") p.resolve(msg.vectors as number[][]);
+      if (msg.type === "result") p.resolve({ data: msg.data as Float32Array, dim: msg.dim as number });
       else p.reject(new Error(msg.message || "embed failed"));
     });
     w.on("error", (e) => { rejectAll(e instanceof Error ? e : new Error(String(e))); });
@@ -58,15 +60,31 @@ export function localEmbedder(opts: LocalEmbedderOptions = {}): ClosableEmbedder
   };
 
   return {
-    async embed(texts: string[]): Promise<number[][]> {
-      if (!texts.length) return [];
+    // Stable id of this embedding config, so the on-disk vector sidecar knows
+    // which vectors are interchangeable (issue #21).
+    fingerprint: fingerprintFor(options),
+
+    // Fast path: a contiguous Float32Array (N*dim) transferred from the worker,
+    // never a number[][]. This is what SearchIndex uses so vectors flow flat all
+    // the way to the dot-product loop and the sidecar.
+    async embedFlat(texts: string[]): Promise<FlatVectors> {
+      if (!texts.length) return { data: new Float32Array(0), dim: 0 };
       const w = ensure();
       const id = ++seq;
-      return new Promise<number[][]>((resolve, reject) => {
+      return new Promise<FlatVectors>((resolve, reject) => {
         pending.set(id, { resolve, reject });
         w.postMessage({ type: "embed", id, texts });
       });
     },
+
+    async embed(texts: string[]): Promise<number[][]> {
+      if (!texts.length) return [];
+      const { data, dim } = await this.embedFlat!(texts);
+      const out: number[][] = [];
+      for (let i = 0; i < texts.length; i++) out.push(Array.from(data.subarray(i * dim, (i + 1) * dim)));
+      return out;
+    },
+
     async close(): Promise<void> {
       const w = worker;
       worker = null;

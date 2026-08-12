@@ -74,6 +74,13 @@ export interface CallContext {
 /** Pluggable embedding backend. Absent/unavailable => lexical-only search. */
 export interface Embedder {
   embed(texts: string[]): Promise<number[][]>;
+  /** Flat-vector fast path: a contiguous Float32Array (N*dim, row-major) + its
+   *  dim. Optional — SearchIndex prefers it (no number[][] alloc) and falls back
+   *  to embed() when absent. */
+  embedFlat?(texts: string[]): Promise<{ data: Float32Array; dim: number }>;
+  /** Stable id of the embedding config (model/pooling/normalize/dtype). Present
+   *  enables the on-disk vector sidecar (issue #21); absent disables caching. */
+  fingerprint?: string;
   /** Optional cleanup (e.g. terminate a worker). Winnow.close() calls it if present. */
   close?(): Promise<void>;
 }
