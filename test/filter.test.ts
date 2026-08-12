@@ -165,7 +165,10 @@ for (const [name, source, expandsUp] of [
     for (const ceiling of [200, 600, 1500]) {
       test(`#24 bracket ${name} @${ceiling} [${counter === approxTokens ? "linear" : "nonlinear"}]: parity + invariant + loop fired`, () => {
         const out = filterResult({ structuredContent: source }, { maxTokens: ceiling }, counter, 4000);
-        const kept = (out.note as any)?._truncated?.kept ?? source.length;
+        // Read kept from the output itself, not the note: the #31 backstop may legitimately
+        // drop an expensive note (e.g. a digit-heavy note under the non-linear counter) to
+        // keep output within the ceiling, without changing how many elements were kept.
+        const kept = out.truncated ? (out.output as unknown[]).length : source.length;
         const ref = refKeptArray(source, ceiling, counter);
 
         // (a) exact parity vs the old binary search (same counter).
@@ -233,4 +236,40 @@ test("#24 empty array and empty string: early-return, not truncated", () => {
   assert.equal(str.truncated, false);
   assert.equal(str.output, "");
   assert.equal(str.tokens, approxTokens(JSON.stringify("")));
+});
+
+// ---- #31: tiny-ceiling invariant (note headroom must never overflow the cap) ----
+
+test("#31 tiny ceiling: output + note never exceeds the cap (array + string)", () => {
+  const arrSource = Array.from({ length: 500 }, (_, i) => ({ i, pad: "z".repeat(30) }));
+  const strSource = "q".repeat(50000);
+  for (const source of [arrSource, strSource] as const) {
+    for (const maxTokens of [0, 1, 5, 19, 20, 21]) {
+      const out = filterResult({ structuredContent: source }, { maxTokens }, approxTokens, 2000);
+      const noteTokens = out.truncated && out.note ? approxTokens(JSON.stringify(out.note)) : 0;
+      const total = approxTokens(JSON.stringify(out.output)) + noteTokens;
+      // Documented floor: a 0 cap still yields a 1-token empty container.
+      const ceiling = Math.max(maxTokens, 1);
+      assert.ok(total <= ceiling,
+        `${Array.isArray(source) ? "array" : "string"}@${maxTokens}: ${total} tok > ceiling ${ceiling}`);
+      // Reported tokens must equal the independently-measured total (consistency).
+      assert.equal(out.tokens, total, `reported tokens mismatch @${maxTokens}`);
+      if (maxTokens === 0) {
+        assert.deepEqual(out.output, Array.isArray(source) ? [] : "", "0 cap -> empty container");
+      }
+    }
+  }
+});
+
+test("#31 note dropped only when it cannot fit", () => {
+  const source = Array.from({ length: 500 }, (_, i) => ({ i, pad: "z".repeat(30) }));
+  // Tiny ceiling: the ~10-token note can't coexist with content -> dropped, but still truncated.
+  const tiny = filterResult({ structuredContent: source }, { maxTokens: 5 }, approxTokens, 2000);
+  assert.equal(tiny.truncated, true, "still truncated at a tiny ceiling");
+  assert.equal(tiny.note, undefined, "note dropped when it cannot fit");
+  // Roomy ceiling: content + note both fit -> note present.
+  const roomy = filterResult({ structuredContent: source }, { maxTokens: 300 }, approxTokens, 2000);
+  assert.equal(roomy.truncated, true);
+  assert.notEqual(roomy.note, undefined, "note present when it fits");
+  assert.equal(roomy.tokens, approxTokens(JSON.stringify(roomy.output)) + approxTokens(JSON.stringify(roomy.note)));
 });

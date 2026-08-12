@@ -63,7 +63,14 @@ function capTokens(value: unknown, maxTokens: number, count: TokenCounter): { va
   const json = JSON.stringify(value) ?? "";
   const totalTokens = count(json); // the payload's one and only full tokenization
   if (totalTokens <= maxTokens) return { value, truncated: false, tokens: totalTokens };
-  const budget = maxTokens - 20; // reserve the truncation-note headroom
+  // Reserve headroom for the ~20-token truncation note, but only when the ceiling can
+  // afford it — for a tiny ceiling the whole cap goes to CONTENT (and budget stays >= 0).
+  // filterResult drops the note if it still won't fit. Floor: nothing smaller than an
+  // empty container ([]/"") is representable, so when maxTokens < count(empty container)
+  // — i.e. maxTokens=0 for a 1-token-per-empty counter like approxTokens — the output is
+  // that empty container and its own token cost is the unavoidable floor (issue #31).
+  const NOTE_RESERVE = 20;
+  const budget = maxTokens > NOTE_RESERVE ? maxTokens - NOTE_RESERVE : maxTokens;
   if (Array.isArray(value)) {
     // Seed the element-count search near the fitting size (tokens spread evenly over elements),
     // then confirm every accepted prefix with an exact measurement.
@@ -117,8 +124,11 @@ export function filterResult(
   const projected = !isError && projection ? jmespath(source as any, projection) : source;
 
   const capped = capTokens(projected, ceiling, count);
-  const note = capped.truncated ? { _truncated: { kept: capped.kept, dropped: capped.dropped } } : undefined;
+  let note = capped.truncated ? { _truncated: { kept: capped.kept, dropped: capped.dropped } } : undefined;
   // Reuse capTokens' measured count of the returned value (issue #23); only the note is extra.
-  const tokens = capped.tokens + (note ? count(JSON.stringify(note)) : 0);
+  let tokens = capped.tokens + (note ? count(JSON.stringify(note)) : 0);
+  // Backstop (issue #31): if the note would push output over the ceiling (tiny ceiling, or a
+  // freak oversized dropped-count note), drop it so output alone honors the hard cap.
+  if (note && tokens > ceiling) { note = undefined; tokens = capped.tokens; }
   return { output: capped.value, tokens, truncated: capped.truncated, note, isError };
 }
