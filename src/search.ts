@@ -40,6 +40,10 @@ export class SearchIndex {
    *  `vec` is a subarray view over the current `vectors` buffer. Rebuilt from
    *  scratch every successful build so removed ids never leak. */
   private vecById = new Map<string, { textHash: string; vec: Float32Array }>();
+  /** id -> tool lookup for hit hydration. Rebuilt every `build()` (tools change
+   *  on build/refresh), so it never goes stale; hoisted out of `search()` to
+   *  avoid rebuilding it per query. */
+  private byId = new Map<string, ToolDef>();
   constructor(private embedder?: Embedder) {}
 
   get hybrid(): boolean { return this.vectors !== null; }
@@ -66,8 +70,10 @@ export class SearchIndex {
    */
   async build(tools: ToolDef[], cache?: EmbeddingCache | null): Promise<void> {
     this.tools = tools;
+    this.byId = new Map(tools.map((t) => [t.id, t]));
     this.db = create({ schema: { id: "string", text: "string" } });
-    await insertMultiple(this.db, tools.map((t) => ({ id: t.id, text: indexText(t) })));
+    const texts = tools.map(indexText);
+    await insertMultiple(this.db, tools.map((t, i) => ({ id: t.id, text: texts[i]! })));
     this.vectors = null;
     this.dim = 0;
     if (!this.embedder) { this.vecById.clear(); return; }
@@ -75,7 +81,6 @@ export class SearchIndex {
 
     const fp = this.embedder.fingerprint;
     const store = fp && cache ? cache : null;
-    const texts = tools.map(indexText);
     const hashes = texts.map(embedTextHash);
     const cached = store ? store.read(fp!) : null;
 
@@ -174,9 +179,8 @@ export class SearchIndex {
       order = lexicalOrder();
     }
 
-    const byId = new Map(this.tools.map((t) => [t.id, t]));
     return order.slice(0, topK).map(({ id, score }) => {
-      const t = byId.get(id)!;
+      const t = this.byId.get(id)!;
       return { id: t.id, name: t.name, summary: summary(t), server: t.server, score: +score.toFixed(3) };
     });
   }
