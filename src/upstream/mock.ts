@@ -12,7 +12,9 @@ export interface MockTool {
 }
 
 export class MockUpstream implements UpstreamConnection {
-  constructor(public readonly server: string, private tools: MockTool[]) {}
+  // listDelayMs: optional artificial per-call delay for listTools, used by the
+  // parallel-listing timing test to simulate real connect/list latency.
+  constructor(public readonly server: string, private tools: MockTool[], private listDelayMs = 0) {}
 
   get identity(): string { return `mock:${this.server}`; }
 
@@ -32,6 +34,7 @@ export class MockUpstream implements UpstreamConnection {
   }
 
   async listTools(): Promise<ToolDef[]> {
+    if (this.listDelayMs > 0) await new Promise((r) => setTimeout(r, this.listDelayMs));
     return this.tools.map((t) => ({
       id: `${this.server}:${t.name}`,
       server: this.server,
