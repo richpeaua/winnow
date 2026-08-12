@@ -28,31 +28,70 @@ function selectSource(raw: ToolResult | unknown): unknown {
   return raw;
 }
 
-function capTokens(value: unknown, maxTokens: number, count: TokenCounter): { value: unknown; truncated: boolean; kept?: number; dropped?: number } {
+/** Largest k in [0,n] with sizeOf(k) <= budget, where sizeOf is monotonic nondecreasing.
+ *  Seeds the search with `estimate` and expands a tight bracket geometrically so every
+ *  measured point sits near the (small) answer instead of at n/2 of the whole payload.
+ *  Precondition (holds in the truncate branch): sizeOf(0) <= budget < sizeOf(n). The
+ *  result is EXACT — the estimate only changes which points are measured, never the answer. */
+function largestFitting(n: number, budget: number, sizeOf: (k: number) => number, estimate: number): number {
+  if (n <= 0) return 0;
+  const est = Math.max(1, Math.min(n - 1, estimate));
+  let lo: number, hi: number;
+  if (sizeOf(est) <= budget) {
+    // Answer is >= est. Grow the upper bound until it overflows.
+    lo = est;
+    hi = Math.min(n, Math.ceil(est * 1.5) + 1);
+    while (hi < n && sizeOf(hi) <= budget) { lo = hi; hi = Math.min(n, hi * 2); }
+  } else {
+    // Answer is < est. Shrink the lower bound until it fits.
+    hi = est;
+    lo = Math.max(0, Math.floor(est * 0.5));
+    while (lo > 0 && sizeOf(lo) > budget) { hi = lo; lo = lo >> 1; }
+  }
+  // Invariant: sizeOf(lo) <= budget < sizeOf(hi). Binary-search the boundary exactly.
+  while (lo + 1 < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sizeOf(mid) <= budget) lo = mid;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/** Cap a value to `maxTokens` (exact, measured). Returns the (possibly truncated) value
+ *  plus `tokens` = count(JSON.stringify(returnedValue)) so callers never re-tokenize it. */
+function capTokens(value: unknown, maxTokens: number, count: TokenCounter): { value: unknown; truncated: boolean; kept?: number; dropped?: number; tokens: number } {
   const json = JSON.stringify(value) ?? "";
-  if (count(json) <= maxTokens) return { value, truncated: false };
+  const totalTokens = count(json); // the payload's one and only full tokenization
+  if (totalTokens <= maxTokens) return { value, truncated: false, tokens: totalTokens };
+  const budget = maxTokens - 20; // reserve the truncation-note headroom
   if (Array.isArray(value)) {
-    let lo = 0, hi = value.length;
-    while (lo < hi) {
-      const mid = (lo + hi + 1) >> 1;
-      if (count(JSON.stringify(value.slice(0, mid))) <= maxTokens - 20) lo = mid;
-      else hi = mid - 1;
-    }
-    return { value: value.slice(0, lo), truncated: true, kept: lo, dropped: value.length - lo };
+    // Seed the element-count search near the fitting size (tokens spread evenly over elements),
+    // then confirm every accepted prefix with an exact measurement.
+    const kEst = Math.floor((value.length * budget) / totalTokens);
+    const lo = largestFitting(
+      value.length,
+      budget,
+      (k) => count(JSON.stringify(value.slice(0, k))),
+      kEst
+    );
+    const kept = value.slice(0, lo);
+    return { value: kept, truncated: true, kept: lo, dropped: value.length - lo, tokens: count(JSON.stringify(kept)) };
   }
-  // Binary-search the longest prefix that fits the budget, using the real counter
-  // (slicing to maxTokens*4 chars only holds for the ~4char/token approximation and
-  // overshoots badly with an injected tokenizer on dense text like JSON).
+  // Binary-search the longest string prefix that fits, seeded by a chars/token ratio.
+  // (Slicing to maxTokens*4 chars only holds for the ~4char/token approximation and
+  // overshoots badly with an injected tokenizer on dense text like JSON.)
   const s = typeof value === "string" ? value : json;
-  let lo = 0, hi = s.length;
-  while (lo < hi) {
-    const mid = (lo + hi + 1) >> 1;
-    // Measure the serialized prefix — the reported token cost is count(JSON.stringify(value)),
-    // and JSON escaping (quotes/newlines) inflates a JSON-ish text blob well past its raw length.
-    if (count(JSON.stringify(s.slice(0, mid))) <= maxTokens - 20) lo = mid;
-    else hi = mid - 1;
-  }
-  return { value: s.slice(0, lo), truncated: true };
+  const estChars = Math.floor((budget / totalTokens) * s.length);
+  const lo = largestFitting(
+    s.length,
+    budget,
+    // Measure the serialized prefix — reported cost is count(JSON.stringify(value)), and JSON
+    // escaping (quotes/newlines) inflates a JSON-ish text blob well past its raw length.
+    (k) => count(JSON.stringify(s.slice(0, k))),
+    estChars
+  );
+  const prefix = s.slice(0, lo);
+  return { value: prefix, truncated: true, tokens: count(JSON.stringify(prefix)) };
 }
 
 export function filterResult(
@@ -79,6 +118,7 @@ export function filterResult(
 
   const capped = capTokens(projected, ceiling, count);
   const note = capped.truncated ? { _truncated: { kept: capped.kept, dropped: capped.dropped } } : undefined;
-  const tokens = count(JSON.stringify(capped.value) ?? "") + (note ? count(JSON.stringify(note)) : 0);
+  // Reuse capTokens' measured count of the returned value (issue #23); only the note is extra.
+  const tokens = capped.tokens + (note ? count(JSON.stringify(note)) : 0);
   return { output: capped.value, tokens, truncated: capped.truncated, note, isError };
 }
