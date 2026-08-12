@@ -33,7 +33,17 @@ parentPort.on("message", (msg) => {
     try {
       const extract = await getExtractor();
       const out = await extract(msg.texts, { pooling: options.pooling, normalize: options.normalize });
-      parentPort.postMessage({ type: "result", id: msg.id, vectors: out.tolist() });
+      // Transfer the raw Float32 buffer (shape [N, dim]) with a transfer list
+      // instead of materializing a number[][] via out.tolist() (measured
+      // ~8ms -> ~0.02ms at N=200). The flat buffer flows worker -> sidecar ->
+      // dot loop without ever building a nested array (issue #21).
+      const dim = out.dims[out.dims.length - 1];
+      let data = out.data; // Float32Array, length N*dim
+      // Only own, exactly-sized buffers are transferable without surprises.
+      if (!(data instanceof Float32Array) || data.byteOffset !== 0 || data.length * 4 !== data.buffer.byteLength) {
+        data = new Float32Array(data);
+      }
+      parentPort.postMessage({ type: "result", id: msg.id, data, dim }, [data.buffer]);
     } catch (e) {
       parentPort.postMessage({ type: "error", id: msg.id, message: String(e?.message ?? e) });
     }

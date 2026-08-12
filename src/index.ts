@@ -3,6 +3,7 @@ export { Winnow, type McpClientOptions } from "./client.js";
 export { Winnow as McpClient } from "./client.js";
 export { Catalog, type CatalogBuildOptions } from "./catalog.js";
 export { CatalogCache, defaultCacheDir, DEFAULT_TTL_MS, type CacheEntry } from "./cache.js";
+export { EmbeddingCache, EMBED_CACHE_VERSION, fingerprintFor, embedTextHash, type CachedVectors, type VectorRow } from "./embedding-cache.js";
 export { SearchIndex } from "./search.js";
 export { filterResult, DEFAULT_MAX_TOKENS, approxTokens } from "./filter.js";
 export { SandboxPool, runSandbox, type ExecOpts, type SandboxPoolOptions } from "./sandbox.js";
