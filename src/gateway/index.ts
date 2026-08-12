@@ -31,6 +31,34 @@ export function forwardHeaderAuth(map: Record<string, string>): AuthResolver {
   };
 }
 
+/** Build a single idempotent shutdown path: run `before` (transport-specific
+ *  teardown, e.g. stop the HTTP listener), close the Winnow instance (upstream
+ *  children, sandbox pool, watches), then exit. A hard watchdog exits anyway if
+ *  close() stalls (e.g. an HTTP upstream or a caller-supplied embedder that hangs)
+ *  — the point is to never wedge the process on disconnect, so exit is not gated
+ *  solely on a clean shutdown. Also wires SIGTERM/SIGINT so a host that signals
+ *  instead of closing the transport still tears upstreams down (no orphans).
+ *  Returns the shutdown fn so the caller can additionally trigger it (stdin EOF). */
+function installGracefulShutdown(winnow: Winnow, before?: () => void): () => void {
+  let shuttingDown = false;
+  const shutdown = () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    const kill = setTimeout(() => process.exit(0), 3000);
+    kill.unref(); // never keep the loop alive on its own
+    try { before?.(); } catch { /* best-effort teardown */ }
+    void winnow.close().finally(() => process.exit(0));
+  };
+  // process.on (not once): the shuttingDown guard already makes shutdown a no-op
+  // after the first call, so a second signal (impatient operator) is safely
+  // ignored while cleanup finishes. With `once`, a second SIGTERM would hit
+  // Node's default disposition and kill the process mid-close(), re-orphaning the
+  // very upstreams this handler exists to reap. The watchdog bounds exit anyway.
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+  return shutdown;
+}
+
 /** Serve the gateway over stdio (one connection on this process's stdin/stdout).
  *  Note: keep stdout clean — MCP stdio is JSON-RPC only; log to stderr. */
 export async function serveStdio(winnow: Winnow, opts?: { name?: string; version?: string }): Promise<void> {
@@ -43,18 +71,7 @@ export async function serveStdio(winnow: Winnow, opts?: { name?: string; version
   // children exit naturally on EOF; shutting down upstreams restores that.
   // The SDK's StdioServerTransport only listens for stdin 'data'/'error', not
   // 'end', so we detect EOF ourselves rather than relying on transport.onclose.
-  let shuttingDown = false;
-  const shutdown = () => {
-    if (shuttingDown) return;
-    shuttingDown = true;
-    // Hard watchdog: exit even if winnow.close() itself stalls (e.g. an HTTP
-    // upstream or a caller-supplied embedder that hangs on close). The whole
-    // point is to never wedge the process on disconnect, so exit is not gated
-    // solely on a clean shutdown. unref() so it never keeps us alive on its own.
-    const kill = setTimeout(() => process.exit(0), 3000);
-    kill.unref();
-    void winnow.close().finally(() => process.exit(0));
-  };
+  const shutdown = installGracefulShutdown(winnow);
   process.stdin.on("end", shutdown);
   process.stdin.on("close", shutdown);
   await server.connect(transport);
@@ -94,5 +111,10 @@ export async function serveHttp(winnow: Winnow, opts: HttpGatewayOptions): Promi
     await transport.handleRequest(req, res, body);
   });
   await new Promise<void>((r) => server.listen(opts.port, r));
+  // Signal-driven graceful shutdown: stop accepting connections, then close the
+  // shared Winnow (upstream children, sandbox pool) before exiting, so a host
+  // signalling the gateway doesn't orphan its upstreams. The watchdog still
+  // guarantees exit if close() stalls.
+  installGracefulShutdown(winnow, () => server.close());
   return server;
 }
