@@ -34,6 +34,12 @@ export class SearchIndex {
    *  null when lexical-only. */
   private vectors: Float32Array | null = null;
   private dim = 0;
+  /** In-memory per-id vector cache (issue #22). Lets a refresh reuse vectors for
+   *  tools whose indexed text is unchanged and embed ONLY new/changed tools —
+   *  independent of the disk sidecar, so it works even with `cache: false`. Each
+   *  `vec` is a subarray view over the current `vectors` buffer. Rebuilt from
+   *  scratch every successful build so removed ids never leak. */
+  private vecById = new Map<string, { textHash: string; vec: Float32Array }>();
   constructor(private embedder?: Embedder) {}
 
   get hybrid(): boolean { return this.vectors !== null; }
@@ -50,10 +56,13 @@ export class SearchIndex {
   }
 
   /**
-   * Build the index. With a `cache` and a fingerprinted embedder, per-tool
-   * vectors are read from the on-disk sidecar; only tools whose indexed text
-   * changed (or are absent) are re-embedded. A FULL hit calls the embedder
-   * zero times — no worker/model load (issue #21).
+   * Build the index. Vectors for tools whose indexed text is unchanged are
+   * reused from two caches before embedding: an in-memory per-id cache (issue
+   * #22, survives across refreshes even with `cache: false`) and, when a
+   * fingerprinted embedder + `cache` are present, the on-disk sidecar (issue
+   * #21). Only new/changed tools are embedded; a full hit calls the embedder
+   * zero times. `vecById` is rebuilt from scratch each successful build so ids
+   * for removed tools are pruned.
    */
   async build(tools: ToolDef[], cache?: EmbeddingCache | null): Promise<void> {
     this.tools = tools;
@@ -61,8 +70,8 @@ export class SearchIndex {
     await insertMultiple(this.db, tools.map((t) => ({ id: t.id, text: indexText(t) })));
     this.vectors = null;
     this.dim = 0;
-    if (!this.embedder) return;
-    if (tools.length === 0) { this.vectors = new Float32Array(0); return; } // trivially hybrid
+    if (!this.embedder) { this.vecById.clear(); return; }
+    if (tools.length === 0) { this.vecById.clear(); this.vectors = new Float32Array(0); return; } // trivially hybrid
 
     const fp = this.embedder.fingerprint;
     const store = fp && cache ? cache : null;
@@ -70,32 +79,45 @@ export class SearchIndex {
     const hashes = texts.map(embedTextHash);
     const cached = store ? store.read(fp!) : null;
 
+    // Establish the working dim from any reuse source. All reused vectors must
+    // share it; a reused vec of a different length is a stale-dim entry and is
+    // NOT spliced in (treated as a miss instead).
+    let dim = cached ? cached.dim : 0;
     const rows: Array<Float32Array | null> = new Array(tools.length).fill(null);
     const missIdx: number[] = [];
-    if (cached) {
-      this.dim = cached.dim;
-      for (let i = 0; i < tools.length; i++) {
-        const e = cached.byId.get(tools[i]!.id);
-        if (e && e.textHash === hashes[i]) rows[i] = e.vec;
-        else missIdx.push(i);
+    for (let i = 0; i < tools.length; i++) {
+      const id = tools[i]!.id;
+      // a. in-memory hit (independent of the disk sidecar)
+      const mem = this.vecById.get(id);
+      if (mem && mem.textHash === hashes[i] && (dim === 0 || mem.vec.length === dim)) {
+        rows[i] = mem.vec;
+        if (dim === 0) dim = mem.vec.length;
+        continue;
       }
-    } else {
-      for (let i = 0; i < tools.length; i++) missIdx.push(i);
+      // b. disk hit
+      if (cached) {
+        const e = cached.byId.get(id);
+        if (e && e.textHash === hashes[i]) { rows[i] = e.vec; continue; }
+      }
+      // c. miss -> embed
+      missIdx.push(i);
     }
+    this.dim = dim;
 
     if (missIdx.length) {
       let flat: { data: Float32Array; dim: number };
       try {
         flat = await this.embedFlat(missIdx.map((i) => texts[i]!));
       } catch {
-        this.vectors = null; // embedder unavailable -> graceful lexical-only
+        this.vectors = null;   // embedder unavailable -> graceful lexical-only
+        this.vecById.clear();  // don't leave a half-updated cache to serve stale vecs
         return;
       }
-      // dim can only differ from a cached dim under file corruption (fingerprint
-      // pins the model); if it does, discard cached rows and re-embed all.
+      // dim can only differ from a reused dim under a model/format change the
+      // fingerprint didn't catch; if it does, discard ALL reused rows (they're
+      // the wrong length) and re-embed everything at the new dim.
       if (this.dim && flat.dim !== this.dim) {
-        for (let i = 0; i < tools.length; i++) { if (rows[i]) { rows[i] = null; missIdx.push(i); } }
-        try { flat = await this.embedFlat(texts); } catch { this.vectors = null; return; }
+        try { flat = await this.embedFlat(texts); } catch { this.vectors = null; this.vecById.clear(); return; }
         this.dim = flat.dim;
         for (let i = 0; i < tools.length; i++) rows[i] = flat.data.subarray(i * flat.dim, (i + 1) * flat.dim);
       } else {
@@ -104,10 +126,17 @@ export class SearchIndex {
       }
     }
 
-    if (!this.dim) { this.vectors = null; return; }
+    if (!this.dim) { this.vectors = null; this.vecById.clear(); return; }
     const flatVecs = new Float32Array(tools.length * this.dim);
     for (let i = 0; i < tools.length; i++) flatVecs.set(rows[i]!, i * this.dim);
     this.vectors = flatVecs;
+
+    // Rebuild vecById over exactly the current tool set (prunes removed ids).
+    // Each entry views the live `flatVecs` buffer, so no vectors are copied.
+    this.vecById.clear();
+    for (let i = 0; i < tools.length; i++) {
+      this.vecById.set(tools[i]!.id, { textHash: hashes[i]!, vec: flatVecs.subarray(i * this.dim, (i + 1) * this.dim) });
+    }
 
     // Persist only when we actually embedded something new (avoid churn on full hits).
     if (store && missIdx.length) {
