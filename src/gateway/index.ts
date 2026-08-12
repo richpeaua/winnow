@@ -35,7 +35,29 @@ export function forwardHeaderAuth(map: Record<string, string>): AuthResolver {
  *  Note: keep stdout clean — MCP stdio is JSON-RPC only; log to stderr. */
 export async function serveStdio(winnow: Winnow, opts?: { name?: string; version?: string }): Promise<void> {
   const server = createGateway(winnow, opts);
-  await server.connect(new StdioServerTransport());
+  const transport = new StdioServerTransport();
+  // stdin EOF (the client closed its end) must terminate this process. A warm
+  // upstream child keeps Node's event loop alive, so without this the gateway
+  // lingers after the client disconnects — hanging any client that waits for
+  // the server to exit (e.g. a Go client's cmd.Wait()). Leaf servers with no
+  // children exit naturally on EOF; shutting down upstreams restores that.
+  // The SDK's StdioServerTransport only listens for stdin 'data'/'error', not
+  // 'end', so we detect EOF ourselves rather than relying on transport.onclose.
+  let shuttingDown = false;
+  const shutdown = () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    // Hard watchdog: exit even if winnow.close() itself stalls (e.g. an HTTP
+    // upstream or a caller-supplied embedder that hangs on close). The whole
+    // point is to never wedge the process on disconnect, so exit is not gated
+    // solely on a clean shutdown. unref() so it never keeps us alive on its own.
+    const kill = setTimeout(() => process.exit(0), 3000);
+    kill.unref();
+    void winnow.close().finally(() => process.exit(0));
+  };
+  process.stdin.on("end", shutdown);
+  process.stdin.on("close", shutdown);
+  await server.connect(transport);
 }
 
 export interface HttpGatewayOptions {

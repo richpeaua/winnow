@@ -9,14 +9,14 @@
 
 **Winnow** (`mcp-winnow`) is an embedded TypeScript SDK that lets an agent use many MCP servers **without context bloat** — it winnows away both tool-definition bloat and tool-result bloat, and works the same attended or headless.
 
-Full design + decision log: [`docs/DESIGN.md`](docs/DESIGN.md). Validation numbers: [`bench/RESULTS.md`](bench/RESULTS.md).
+Full design + decision log: [`docs/DESIGN.md`](docs/DESIGN.md). Validation numbers: [`bench/RESULTS.md`](bench/RESULTS.md) (reference surface) and [`bench/REAL-RESULTS.md`](bench/REAL-RESULTS.md) (**real MCP servers** over stdio).
 
 ## The idea
 
 - **Definition bloat** → the model sees ~4 meta-tools (`search_tools`, `load_tool`, `call_tool`, `run_code`) instead of hundreds of full schemas. Full defs stay inside the SDK; the agent searches, loads only what it needs, then calls.
 - **Result bloat** → every result is trimmed by a JMESPath projection and a **hard token cap the agent can only lower** — so even a forgotten projection can't leak an unbounded blob.
 
-Measured on a representative surface: **~10× (call) / 26× (exec)** end-to-end token reduction; hybrid search **100% recall@8**.
+Measured on a representative surface: **~10× (call) / 26× (exec)** end-to-end token reduction; hybrid search **100% recall@8**. Against **real servers** (`server-everything` + `server-filesystem`, 27 tools): **90.4%** fewer tool-definition tokens, **60–80%** off real tool results via the cap — see [`bench/REAL-RESULTS.md`](bench/REAL-RESULTS.md) (`cd bench && npm i && npm run bench:real`). And against **real public/hosted MCPs over HTTP** (DeepWiki, GitMCP): transport + search + cap validated end to end, 75% off a real remote doc payload — [`bench/PUBLIC-RESULTS.md`](bench/PUBLIC-RESULTS.md) (`npm run bench:public`).
 
 ## Quickstart
 

@@ -5,7 +5,14 @@ All notable changes to Winnow are documented here. This project adheres to
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Real-server benchmark** (`bench/real-servers.mjs`, `npm run bench:real`): drives actual MCP servers (`server-everything` + `server-filesystem`) over stdio and reports context reduction and the #4–#7 scale work with real payloads and a real BPE tokenizer. Results in [`bench/REAL-RESULTS.md`](bench/REAL-RESULTS.md): 90.4% fewer tool-definition tokens (27 real tools), 60–80% off real tool results via the cap. Honest finding recorded: upstream pooling (#7) gives no gain for async servers (which multiplex a single connection) — it's for genuinely serial upstreams.
+- **Public/hosted MCP benchmark** (`bench/public-mcp.mjs`, `npm run bench:public`): drives real public MCP servers over the Streamable-HTTP transport (DeepWiki, GitMCP; no auth) — validating transport + auth + search + result cap end to end against servers we don't control. Results in [`bench/PUBLIC-RESULTS.md`](bench/PUBLIC-RESULTS.md): 75% off a real remote doc payload on a ~450 ms round-trip. Point `WINNOW_MCP_URL`/`WINNOW_MCP_TOKEN` at an authed server (e.g. GitHub's hosted MCP, ~50+ tools) to fold in a big catalog.
+
+### Fixed
+
+- **Result cap now honors an injected tokenizer on text payloads.** The token cap truncated string/text results to `maxTokens × 4` characters (hardcoding the ~4-char/token approximation), so with a real tokenizer a dense text blob (e.g. a file read) overshot the cap badly (~2×). It now binary-searches the serialized prefix against the actual counter, so `maxTokens` is a true ceiling for text as well as structured results. Found by the real-server benchmark.
 
 ## [0.2.0] — 2026-08-05
 

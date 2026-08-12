@@ -40,8 +40,19 @@ function capTokens(value: unknown, maxTokens: number, count: TokenCounter): { va
     }
     return { value: value.slice(0, lo), truncated: true, kept: lo, dropped: value.length - lo };
   }
+  // Binary-search the longest prefix that fits the budget, using the real counter
+  // (slicing to maxTokens*4 chars only holds for the ~4char/token approximation and
+  // overshoots badly with an injected tokenizer on dense text like JSON).
   const s = typeof value === "string" ? value : json;
-  return { value: s.slice(0, maxTokens * 4), truncated: true };
+  let lo = 0, hi = s.length;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    // Measure the serialized prefix — the reported token cost is count(JSON.stringify(value)),
+    // and JSON escaping (quotes/newlines) inflates a JSON-ish text blob well past its raw length.
+    if (count(JSON.stringify(s.slice(0, mid))) <= maxTokens - 20) lo = mid;
+    else hi = mid - 1;
+  }
+  return { value: s.slice(0, lo), truncated: true };
 }
 
 export function filterResult(
