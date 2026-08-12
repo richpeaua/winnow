@@ -34,6 +34,7 @@
     "demo": "tsx examples/demo.ts",
     "gateway": "tsx src/gateway/cli.ts",
     "gateway:demo": "tsx examples/gateway-demo.ts",
+    "bench:perf": "tsx bench/perf-compare.mjs",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
