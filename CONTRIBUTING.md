@@ -5,7 +5,7 @@ Thanks for your interest in improving Winnow! This project fights MCP context bl
 ## Getting started
 
 ```bash
-git clone https://github.com/richpeaua/winnow.git
+git clone https://github.com/Cambrionic/winnow.git
 cd winnow
 npm install
 npm test          # unit + integration tests (fully offline)

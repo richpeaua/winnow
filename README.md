@@ -2,7 +2,7 @@
 
 > Keep the grain, drop the bloat.
 
-[![CI](https://github.com/richpeaua/winnow/actions/workflows/ci.yml/badge.svg)](https://github.com/richpeaua/winnow/actions/workflows/ci.yml)
+[![CI](https://github.com/Cambrionic/winnow/actions/workflows/ci.yml/badge.svg)](https://github.com/Cambrionic/winnow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 [![MCP](https://img.shields.io/badge/MCP-client-blue.svg)](https://modelcontextprotocol.io)
@@ -88,7 +88,7 @@ Winnow can run as an MCP **server** exposing just the 4 meta-tools — so a host
 Winnow also ships as a Claude Code plugin (`plugin/`, listed in `.claude-plugin/marketplace.json`):
 
 ```
-/plugin marketplace add richpeaua/winnow
+/plugin marketplace add Cambrionic/winnow
 /plugin install winnow@winnow
 ```
 
@@ -110,9 +110,9 @@ wayfinder/  the decision map this project was designed through
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup and workflow, and please follow the [Code of Conduct](CODE_OF_CONDUCT.md). New to the code? [`docs/DESIGN.md`](docs/DESIGN.md) explains every decision, and `wayfinder/` records how they were reached.
 
-- 🐛 Bugs & ✨ features: open an [issue](https://github.com/richpeaua/winnow/issues)
+- 🐛 Bugs & ✨ features: open an [issue](https://github.com/Cambrionic/winnow/issues)
 - 🔒 Security: see [SECURITY.md](SECURITY.md) — please report privately
 
 ## License
 
-MIT © richpeaua — see [LICENSE](LICENSE).
+MIT © Cambrionic — see [LICENSE](LICENSE).

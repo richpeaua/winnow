@@ -16,7 +16,7 @@ All notable changes to Winnow are documented here. This project adheres to
 
 ## [0.2.0] — 2026-08-05
 
-Multi-agent scale ([epic #8](https://github.com/richpeaua/winnow/issues/8)): four gaps that surface when many agents share one gateway, each with a measured before/after and Node 20 + 22 CI.
+Multi-agent scale ([epic #8](https://github.com/Cambrionic/winnow/issues/8)): four gaps that surface when many agents share one gateway, each with a measured before/after and Node 20 + 22 CI.
 
 ### Added
 

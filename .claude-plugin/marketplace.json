@@ -1,6 +1,6 @@
 {
   "name": "winnow",
-  "owner": { "name": "richpeaua", "url": "https://github.com/richpeaua" },
+  "owner": { "name": "Cambrionic", "url": "https://github.com/Cambrionic" },
   "description": "Winnow — use many MCP servers without context bloat.",
   "plugins": [
     {
@@ -9,7 +9,7 @@
       "displayName": "Winnow",
       "description": "Hides all your MCP servers behind one gateway exposing 4 tools (search_tools / load_tool / call_tool / run_code), cutting the context they cost by ~10x.",
       "version": "0.1.0",
-      "author": { "name": "richpeaua" }
+      "author": { "name": "Cambrionic" }
     }
   ]
 }

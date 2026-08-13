@@ -3,8 +3,8 @@
   "displayName": "Winnow",
   "version": "0.1.0",
   "description": "Use many MCP servers without context bloat. Winnow hides all your MCP servers behind one gateway exposing just 4 tools (search_tools / load_tool / call_tool / run_code), so the model spends a fraction of the context.",
-  "author": { "name": "richpeaua", "url": "https://github.com/richpeaua" },
-  "homepage": "https://github.com/richpeaua/winnow",
-  "repository": "https://github.com/richpeaua/winnow",
+  "author": { "name": "Cambrionic", "url": "https://github.com/Cambrionic" },
+  "homepage": "https://github.com/Cambrionic/winnow",
+  "repository": "https://github.com/Cambrionic/winnow",
   "keywords": ["mcp", "context", "gateway", "tools", "token-efficiency"]
 }
