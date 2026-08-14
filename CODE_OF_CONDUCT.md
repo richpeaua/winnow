@@ -52,7 +52,7 @@ an individual is officially representing the community in public spaces.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement privately through
-[GitHub's private reporting](https://github.com/richpeaua/winnow/security/advisories/new)
+[GitHub's private reporting](https://github.com/Cambrionic/winnow/security/advisories/new)
 or by contacting the maintainer directly. All complaints will be reviewed and
 investigated promptly and fairly.
 

@@ -4,7 +4,7 @@
 
 Please **do not** open a public issue for security vulnerabilities.
 
-Instead, report privately via GitHub's [**Report a vulnerability**](https://github.com/richpeaua/winnow/security/advisories/new) (Security → Advisories), or open a minimal private channel with the maintainer. Include:
+Instead, report privately via GitHub's [**Report a vulnerability**](https://github.com/Cambrionic/winnow/security/advisories/new) (Security → Advisories), or open a minimal private channel with the maintainer. Include:
 
 - a description of the issue and its impact,
 - steps to reproduce (a minimal repro is ideal),

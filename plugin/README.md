@@ -7,7 +7,7 @@ Installs the **Winnow gateway** as a single MCP server. Instead of connecting N 
 ## Install
 
 ```
-/plugin marketplace add richpeaua/winnow
+/plugin marketplace add Cambrionic/winnow
 /plugin install winnow@winnow
 ```
 
