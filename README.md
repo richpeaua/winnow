@@ -74,25 +74,52 @@ Every part of the spec is implemented, plus the gateway that makes it installabl
 
 Winnow can run as an MCP **server** exposing just the 4 meta-tools — so a host connects to ONE server and sees FOUR tools while Winnow hides N upstream servers behind search/load/call/run_code. `run_code` runs server-side in Winnow's sandbox, so hosts that can't `import` TS still get the full composition win.
 
+Winnow speaks standard MCP over **stdio** (the host spawns `mcp-winnow gateway`) or **Streamable HTTP** (`--http`, for hosts/remotes that connect to a URL). `winnow.config.json` lists the upstream servers to aggregate (same schema as `Winnow.fromConfig`). Build the bin with `npm run build`, or run from source: `npx tsx src/gateway/cli.ts --config winnow.config.json`. Copy-paste the snippet for your agent:
+
+### Claude Desktop / Cursor — stdio
+
 ```jsonc
-// e.g. claude_desktop_config.json / .cursor/mcp.json
+// claude_desktop_config.json  or  .cursor/mcp.json
 "mcpServers": {
   "winnow": { "command": "npx", "args": ["-y", "mcp-winnow", "gateway", "--config", "winnow.config.json"] }
 }
 ```
 
-`winnow.config.json` lists the upstream servers to aggregate (same schema as `Winnow.fromConfig`). Remote/hosted instead: `serveHttp(winnow, { port, token })` (Streamable-HTTP + bearer). Build the bin with `npm run build`; from source run `npx tsx src/gateway/cli.ts --config winnow.config.json`.
+### Claude Code — plugin
 
-### Claude Code plugin
-
-Winnow also ships as a Claude Code plugin (`plugin/`, listed in `.claude-plugin/marketplace.json`):
+Winnow ships as a Claude Code plugin (`plugin/`, listed in `.claude-plugin/marketplace.json`):
 
 ```
 /plugin marketplace add Cambrionic/winnow
 /plugin install winnow@winnow
 ```
 
-Then drop a `winnow.config.json` in your project root. (Requires `mcp-winnow` published to npm, or a local `npm link` — see `plugin/README.md`.)
+Then drop a `winnow.config.json` in your project root. (Requires `mcp-winnow` on npm, or a local `npm link` — see `plugin/README.md`.)
+
+### Codex CLI — stdio
+
+`~/.codex/config.toml` (or project-scoped `.codex/config.toml`):
+
+```toml
+[mcp_servers.winnow]
+command = "npx"
+args = ["-y", "mcp-winnow", "gateway", "--config", "winnow.config.json"]
+```
+
+Or one-shot: `codex mcp add winnow -- npx -y mcp-winnow gateway --config winnow.config.json`. For a remote/hosted gateway, swap `command`/`args` for `url = "https://…"` + `bearer_token_env_var = "WINNOW_TOKEN"`.
+
+### Pi — Streamable HTTP
+
+Pi connects to MCP over HTTP, so run the gateway with `--http` and register the URL in Pi (via its `/mcp` extension; stored in `~/.pi/agent/mcp/servers.json`):
+
+```bash
+# 1. start the gateway over HTTP (bearer optional via WINNOW_GATEWAY_TOKEN)
+npx -y mcp-winnow gateway --config winnow.config.json --http --port 8080
+# 2. in Pi:
+/mcp add winnow http://localhost:8080
+```
+
+With a bearer: set `WINNOW_GATEWAY_TOKEN` on the gateway, then `/mcp add winnow http://localhost:8080 Authorization=Bearer <token>` in Pi.
 
 ## Layout
 
